@@ -972,22 +972,39 @@
         <input type="password" id="reg-password" placeholder="Min. 6 caratteri">
       </div>
 
-      <!-- INFO REGISTRAZIONE -->
-      <div style="background:var(--accent-light);border-radius:var(--radius-sm);padding:12px 14px;margin-bottom:4px;">
-        <p style="font-size:13px;color:var(--accent);margin:0;">
-          📋 Inserisci il codice invito ricevuto dalla tua responsabile per collegare il tuo account.
-        </p>
+      <!-- RUOLO -->
+      <div class="form-group">
+        <label>Sei un responsabile o un collaboratore?</label>
+        <div style="display:flex;gap:10px;margin-top:6px;">
+          <label style="flex:1;display:flex;align-items:center;gap:8px;padding:10px 14px;border:1.5px solid var(--accent);border-radius:var(--radius-sm);cursor:pointer;background:var(--accent-light);transition:all 0.2s;" id="role-worker-box" onclick="selectRole('worker')">
+            <input type="radio" name="reg-ruolo" value="worker" id="role-worker" checked style="width:auto;accent-color:var(--accent);">
+            <span style="font-size:14px;">👤 Collaboratore</span>
+          </label>
+          <label style="flex:1;display:flex;align-items:center;gap:8px;padding:10px 14px;border:1.5px solid var(--border-strong);border-radius:var(--radius-sm);cursor:pointer;transition:all 0.2s;" id="role-admin-box" onclick="selectRole('admin')">
+            <input type="radio" name="reg-ruolo" value="admin" id="role-admin" style="width:auto;accent-color:var(--accent);">
+            <span style="font-size:14px;">👑 Responsabile</span>
+          </label>
+        </div>
       </div>
 
-        <!-- CODICE INVITO (solo se collaboratore) -->
-      <div id="worker-code-box" style="display:block;">
+        <!-- CODICE INVITO (solo collaboratore) -->
+      <div id="worker-code-box">
         <div class="form-group">
           <label>Codice invito <span style="color:var(--accent)">*</span></label>
-          <input type="text" id="reg-invite-code" placeholder="Inserisci il codice ricevuto dalla responsabile" style="text-transform:uppercase;">
+          <input type="text" id="reg-invite-code" placeholder="Inserisci il codice ricevuto dalla responsabile" style="text-transform:uppercase;letter-spacing:1px;">
         </div>
         <div class="form-group">
           <label>Qualifica <span style="color:var(--text-muted);font-weight:300">(opzionale)</span></label>
           <input type="text" id="reg-qualifica" placeholder="Es. Cuoco, Addetto mensa...">
+        </div>
+      </div>
+
+      <!-- NESSUN CODICE PER RESPONSABILE -->
+      <div id="admin-register-box" style="display:none;">
+        <div style="background:var(--green-light);border-radius:var(--radius-sm);padding:12px 14px;margin-bottom:4px;">
+          <p style="font-size:13px;color:var(--green);margin:0;">
+            👑 Ti registrerai come responsabile. Potrai poi condividere il tuo codice invito ai collaboratori.
+          </p>
         </div>
       </div>
 
@@ -1386,27 +1403,22 @@ async function doRegister() {
 
   try {
     // Cerca il responsabile con questo codice invito
+    let adminId = null;
     const adminSnap = await db.collection('users')
       .where('codiceInvito', '==', inviteCode)
       .get();
 
-    if (adminSnap.empty) {
+    if (!adminSnap.empty) {
+      adminId = adminSnap.docs[0].id;
+    }
+
+    if (!adminId) {
       btn.disabled = false;
       btn.textContent = 'Crea account';
+      isRegistering = false;
       showLoginError('Codice invito non valido. Controlla con la tua responsabile.');
       return;
     }
-
-    // Trova il doc admin
-    const adminDoc = adminSnap.docs.find(d => d.data().ruolo_app === 'admin');
-    if (!adminDoc) {
-      btn.disabled = false;
-      btn.textContent = 'Crea account';
-      showLoginError('Codice invito non valido.');
-      return;
-    }
-
-    const adminId = adminDoc.id;
     btn.textContent = 'Creazione account...';
 
     // Crea account Firebase Auth
