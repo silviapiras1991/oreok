@@ -711,7 +711,7 @@ async function loadDashboard() {
   const meseStr = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0');
   const tsSnap = await db.collection('timesheets').where('mese','==',meseStr).get();
   let oreReq=0, oreConf=0, pending=0;
-  tsSnap.forEach(d => { const t=d.data(); oreReq+=t.oreRichieste||0; if(t.confermato){oreConf+=t.oreEffettive??t.oreRichieste??0;}else{pending++;} });
+  tsSnap.forEach(d => { const t=d.data(); if(t.giornoLibero) return; oreReq+=t.oreRichieste||0; if(t.confermato){oreConf+=t.oreEffettive??t.oreRichieste??0;}else{pending++;} });
   document.getElementById('stat-ore-mese').textContent = oreReq.toFixed(1)+'h';
   document.getElementById('stat-ore-conf').textContent = oreConf.toFixed(1)+'h';
   document.getElementById('stat-pending').textContent = pending;
@@ -872,7 +872,10 @@ async function saveSchedule(workerId, period) {
   const giorni = {};
   let totOre = 0;
   document.querySelectorAll('#schedule-form-area .ore-input:not([disabled])').forEach(inp => {
-    if (inp.value) { giorni[inp.dataset.day]=parseFloat(inp.value); totOre+=parseFloat(inp.value); }
+    if (inp.value !== '') {
+      giorni[inp.dataset.day] = parseFloat(inp.value);
+      totOre += parseFloat(inp.value);
+    }
   });
   if (!Object.keys(giorni).length) { showToast('Inserisci almeno un ora', 'error'); return; }
   const schedId = workerId+'_'+period.replace(/\W/g,'_');
@@ -889,7 +892,10 @@ async function saveSchedule(workerId, period) {
       batch.set(db.collection('timesheets').doc(tsId), {
         workerId, data: day, mese,
         settimana: getWeekStrFromDate(new Date(day+'T12:00:00')),
-        oreRichieste: ore, confermato: false, giustificativo: null,
+        oreRichieste: ore,
+        giornoLibero: ore === 0,
+        confermato: ore === 0 ? true : false,
+        giustificativo: ore === 0 ? {tipo: 'giorno_libero', note: 'Nessuna ora assegnata'} : null,
         updatedAt: firebase.firestore.FieldValue.serverTimestamp()
       }, {merge:true});
     }
