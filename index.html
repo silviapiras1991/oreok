@@ -1382,6 +1382,7 @@ async function doRegister() {
   const btn = document.getElementById('btn-register');
   btn.disabled = true;
   btn.textContent = 'Verifica codice...';
+  isRegistering = true;
 
   try {
     // Cerca il responsabile con questo codice invito
@@ -1440,18 +1441,15 @@ async function doRegister() {
       createdAt: firebase.firestore.FieldValue.serverTimestamp()
     });
 
-    // Documento salvato — forza reload del profilo
-    currentUserData = {
-      nome, cognome, email,
-      ruolo: qualifica || 'Collaboratore',
-      ruolo_app: 'worker',
-      adminId: adminId,
-      attiva: true
-    };
+    // Documento salvato — avvia app manualmente
+    isRegistering = false;
     currentUser = cred.user;
+    const savedSnap = await db.collection('users').doc(uid).get();
+    currentUserData = savedSnap.data();
     initApp();
 
   } catch(e) {
+    isRegistering = false;
     btn.disabled = false;
     btn.textContent = 'Crea account';
     if (e.code === 'auth/email-already-in-use') { showLoginError('Email già registrata'); return; }
