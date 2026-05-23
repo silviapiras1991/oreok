@@ -260,12 +260,35 @@ tr:hover td{background:var(--cream);}
         <label>Password</label>
         <input type="password" id="reg-password" placeholder="Min. 6 caratteri">
       </div>
+      <!-- SELEZIONE RUOLO -->
       <div class="form-group">
-        <label>Codice invito</label>
-        <input type="text" id="reg-codice" placeholder="Codice ricevuto dalla responsabile" style="text-transform:uppercase;letter-spacing:1px;">
+        <label>Sei un responsabile o un collaboratore?</label>
+        <div style="display:flex;gap:10px;margin-top:6px;">
+          <label style="flex:1;display:flex;align-items:center;gap:8px;padding:10px 14px;border:1.5px solid var(--accent);border-radius:var(--radius-sm);cursor:pointer;background:var(--accent-light);transition:all 0.2s;" id="role-worker-label">
+            <input type="radio" name="reg-ruolo" value="worker" id="role-worker" checked onchange="toggleRoleBox()" style="width:auto;accent-color:var(--accent);">
+            <span style="font-size:14px;">👤 Collaboratore</span>
+          </label>
+          <label style="flex:1;display:flex;align-items:center;gap:8px;padding:10px 14px;border:1.5px solid var(--border-strong);border-radius:var(--radius-sm);cursor:pointer;transition:all 0.2s;" id="role-admin-label">
+            <input type="radio" name="reg-ruolo" value="admin" id="role-admin" onchange="toggleRoleBox()" style="width:auto;accent-color:var(--accent);">
+            <span style="font-size:14px;">👑 Responsabile</span>
+          </label>
+        </div>
       </div>
-      <div class="info-box">
-        <p>📋 Usa la stessa email con cui sei stato/a registrato/a e il codice invito ricevuto.</p>
+      <!-- CODICE INVITO - solo collaboratore -->
+      <div id="worker-code-box">
+        <div class="form-group">
+          <label>Codice invito</label>
+          <input type="text" id="reg-codice" placeholder="Codice ricevuto dalla responsabile" style="text-transform:uppercase;letter-spacing:1px;">
+        </div>
+        <div class="info-box">
+          <p>📋 Usa la stessa email con cui sei stato/a registrato/a e il codice invito ricevuto.</p>
+        </div>
+      </div>
+      <!-- INFO RESPONSABILE -->
+      <div id="admin-info-box" style="display:none;">
+        <div style="background:var(--green-light);border-radius:var(--radius-sm);padding:12px 14px;margin-bottom:14px;">
+          <p style="font-size:13px;color:var(--green);margin:0;">👑 Ti registrerai come responsabile. Dopo la registrazione potrai aggiungere i tuoi collaboratori.</p>
+        </div>
       </div>
       <button class="btn-primary" id="btn-register" onclick="doRegister()">Crea account</button>
     </div>
@@ -541,18 +564,29 @@ async function doLogin() {
 }
 
 // ── REGISTRAZIONE ──
+function toggleRoleBox() {
+  const isAdmin = document.getElementById('role-admin').checked;
+  document.getElementById('worker-code-box').style.display = isAdmin ? 'none' : 'block';
+  document.getElementById('admin-info-box').style.display = isAdmin ? 'block' : 'none';
+  document.getElementById('role-admin-label').style.borderColor = isAdmin ? 'var(--accent)' : 'var(--border-strong)';
+  document.getElementById('role-admin-label').style.background = isAdmin ? 'var(--accent-light)' : 'transparent';
+  document.getElementById('role-worker-label').style.borderColor = !isAdmin ? 'var(--accent)' : 'var(--border-strong)';
+  document.getElementById('role-worker-label').style.background = !isAdmin ? 'var(--accent-light)' : 'transparent';
+}
+
 async function doRegister() {
   const nome = document.getElementById('reg-nome').value.trim();
   const cognome = document.getElementById('reg-cognome').value.trim();
   const email = document.getElementById('reg-email').value.trim();
   const pw = document.getElementById('reg-password').value.trim();
-  const codice = document.getElementById('reg-codice').value.trim().toUpperCase();
+  const isAdmin = document.getElementById('role-admin').checked;
+  const codice = !isAdmin ? document.getElementById('reg-codice').value.trim().toUpperCase() : '';
 
   document.getElementById('login-error').style.display = 'none';
 
   if (!nome || !cognome || !email || !pw) { showLoginError('Compila tutti i campi obbligatori'); return; }
   if (pw.length < 6) { showLoginError('La password deve essere di almeno 6 caratteri'); return; }
-  if (!codice) { showLoginError('Inserisci il codice invito'); return; }
+  if (!isAdmin && !codice) { showLoginError('Inserisci il codice invito'); return; }
 
   const btn = document.getElementById('btn-register');
   btn.disabled = true;
@@ -560,70 +594,72 @@ async function doRegister() {
   isRegistering = true;
 
   try {
-    // Step 1: verifica codice invito cercando tra tutti gli admin
-    const allSnap = await db.collection('users').get();
-    let adminId = null;
-    let preDocId = null;
-    let preDocData = null;
+    if (isAdmin) {
+      // Registrazione responsabile - nessun codice richiesto
+      const cred = await auth.createUserWithEmailAndPassword(email, pw);
+      const uid = cred.user.uid;
+      // Genera codice invito univoco
+      const codiceInvito = 'OREOK' + Math.random().toString(36).substring(2,7).toUpperCase();
+      await db.collection('users').doc(uid).set({
+        nome, cognome, email,
+        ruolo: 'Responsabile',
+        ruolo_app: 'admin',
+        codiceInvito: codiceInvito,
+        attiva: true,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+      isRegistering = false;
+      currentUser = cred.user;
+      currentUserData = { nome, cognome, email, ruolo: 'Responsabile', ruolo_app: 'admin', codiceInvito };
+      showToast('Account creato! Il tuo codice invito e: ' + codiceInvito, 'success');
+      initApp();
 
-    allSnap.forEach(doc => {
-      const d = doc.data();
-      // Trova admin con questo codice invito
-      if (d.ruolo_app === 'admin' && d.codiceInvito === codice) {
-        adminId = doc.id;
+    } else {
+      // Registrazione collaboratore - verifica codice + email
+      const allSnap = await db.collection('users').get();
+      let adminId = null;
+      let preDocId = null;
+      let preDocData = null;
+
+      allSnap.forEach(doc => {
+        const d = doc.data();
+        if (d.ruolo_app === 'admin' && d.codiceInvito === codice) adminId = doc.id;
+        if (d.preRegistrato === true && d.email === email) { preDocId = doc.id; preDocData = d; }
+      });
+
+      if (!adminId) {
+        isRegistering = false;
+        btn.disabled = false; btn.textContent = 'Crea account';
+        showLoginError('Codice invito non valido.');
+        return;
       }
-      // Trova doc pre-registrato con questa email
-      if (d.preRegistrato === true && d.email === email) {
-        preDocId = doc.id;
-        preDocData = d;
+      if (!preDocId || preDocData.adminId !== adminId) {
+        isRegistering = false;
+        btn.disabled = false; btn.textContent = 'Crea account';
+        showLoginError('Email non trovata. Chiedi alla responsabile di aggiungerti prima.');
+        return;
       }
-    });
 
-    if (!adminId) {
+      btn.textContent = 'Creazione account...';
+      const cred = await auth.createUserWithEmailAndPassword(email, pw);
+      const uid = cred.user.uid;
+      btn.textContent = 'Salvataggio profilo...';
+      await db.collection('users').doc(uid).set({
+        nome, cognome, email,
+        ruolo: preDocData.ruolo || 'Collaboratore',
+        ruolo_app: 'worker',
+        adminId: adminId,
+        attiva: true,
+        preRegistrato: false,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+      await db.collection('users').doc(preDocId).delete();
       isRegistering = false;
-      btn.disabled = false; btn.textContent = 'Crea account';
-      showLoginError('Codice invito non valido. Controlla con la tua responsabile.');
-      return;
+      currentUser = cred.user;
+      const savedSnap = await db.collection('users').doc(uid).get();
+      currentUserData = savedSnap.data();
+      initApp();
     }
-
-    if (!preDocId) {
-      isRegistering = false;
-      btn.disabled = false; btn.textContent = 'Crea account';
-      showLoginError('Email non trovata. Chiedi alla responsabile di aggiungerti prima.');
-      return;
-    }
-
-    // Verifica che il doc pre-registrato appartenga a questo admin
-    if (preDocData.adminId !== adminId) {
-      isRegistering = false;
-      btn.disabled = false; btn.textContent = 'Crea account';
-      showLoginError('Email o codice invito non validi.');
-      return;
-    }
-
-    btn.textContent = 'Creazione account...';
-    const cred = await auth.createUserWithEmailAndPassword(email, pw);
-    const uid = cred.user.uid;
-
-    btn.textContent = 'Salvataggio profilo...';
-    await db.collection('users').doc(uid).set({
-      nome, cognome, email,
-      ruolo: preDocData.ruolo || 'Collaboratore',
-      ruolo_app: 'worker',
-      adminId: adminId,
-      attiva: true,
-      preRegistrato: false,
-      createdAt: firebase.firestore.FieldValue.serverTimestamp()
-    });
-
-    // Elimina doc pre-registrato
-    await db.collection('users').doc(preDocId).delete();
-
-    isRegistering = false;
-    currentUser = cred.user;
-    const savedSnap = await db.collection('users').doc(uid).get();
-    currentUserData = savedSnap.data();
-    initApp();
 
   } catch(e) {
     isRegistering = false;
