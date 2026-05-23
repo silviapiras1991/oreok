@@ -6,918 +6,215 @@
 <title>Ore OK</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,500;0,9..144,600;1,9..144,300&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
-
-<!-- Firebase -->
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
-
-<!-- SheetJS per export Excel -->
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-
-<!-- OneSignal -->
-<script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
-
 <style>
-  :root {
-    --cream: #FAF7F2;
-    --cream-dark: #F0EBE1;
-    --warm-brown: #3D2B1F;
-    --medium-brown: #6B4C3B;
-    --light-brown: #A07856;
-    --accent: #C8553D;
-    --accent-light: #F5E6E2;
-    --accent-hover: #B04432;
-    --green: #4A7C59;
-    --green-light: #E8F2EC;
-    --amber: #D4841A;
-    --amber-light: #FEF3E2;
-    --text-primary: #2C1A0E;
-    --text-secondary: #6B4C3B;
-    --text-muted: #A07856;
-    --border: rgba(61,43,31,0.12);
-    --border-strong: rgba(61,43,31,0.22);
-    --shadow-soft: 0 2px 16px rgba(61,43,31,0.08);
-    --shadow-card: 0 4px 24px rgba(61,43,31,0.10);
-    --radius: 14px;
-    --radius-sm: 8px;
-    --radius-lg: 20px;
-  }
+:root {
+  --cream:#FAF7F2;--cream-dark:#F0EBE1;--warm-brown:#3D2B1F;--medium-brown:#6B4C3B;
+  --light-brown:#A07856;--accent:#C8553D;--accent-light:#F5E6E2;--accent-hover:#B04432;
+  --green:#4A7C59;--green-light:#E8F2EC;--amber:#D4841A;--amber-light:#FEF3E2;
+  --text-primary:#2C1A0E;--text-secondary:#6B4C3B;--text-muted:#A07856;
+  --border:rgba(61,43,31,0.12);--border-strong:rgba(61,43,31,0.22);
+  --shadow-soft:0 2px 16px rgba(61,43,31,0.08);--shadow-card:0 4px 24px rgba(61,43,31,0.10);
+  --radius:14px;--radius-sm:8px;--radius-lg:20px;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--text-primary);min-height:100vh;font-size:15px;line-height:1.6;}
+h1,h2,h3{font-family:'Fraunces',serif;font-weight:500;}
 
-  * { margin: 0; padding: 0; box-sizing: border-box; }
+/* NAVBAR */
+.navbar{background:var(--warm-brown);padding:0 24px;height:60px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;}
+.navbar-logo{font-family:'Fraunces',serif;font-size:22px;color:var(--cream);font-weight:600;}
+.navbar-logo span{color:#E8A87C;}
+.navbar-right{display:flex;align-items:center;gap:16px;}
+.navbar-user{font-size:13px;color:rgba(250,247,242,0.7);font-weight:300;}
+.navbar-user strong{color:var(--cream);font-weight:500;}
+.btn-logout{background:rgba(250,247,242,0.1);border:1px solid rgba(250,247,242,0.2);color:var(--cream);padding:6px 14px;border-radius:20px;font-family:'DM Sans',sans-serif;font-size:13px;cursor:pointer;transition:all 0.2s;}
+.btn-logout:hover{background:rgba(250,247,242,0.2);}
 
-  body {
-    font-family: 'DM Sans', sans-serif;
-    background: var(--cream);
-    color: var(--text-primary);
-    min-height: 100vh;
-    font-size: 15px;
-    line-height: 1.6;
-  }
+/* LOGIN */
+#login-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;background:var(--cream);position:relative;overflow:hidden;}
+#login-screen::before{content:'';position:absolute;top:-100px;right:-100px;width:500px;height:500px;background:radial-gradient(circle,rgba(200,85,61,0.08) 0%,transparent 70%);pointer-events:none;}
+.login-card{background:white;border-radius:var(--radius-lg);padding:44px;width:100%;max-width:420px;box-shadow:var(--shadow-card);border:1px solid var(--border);position:relative;z-index:1;}
+.login-brand{text-align:center;margin-bottom:28px;}
+.login-brand-icon{width:64px;height:64px;background:var(--warm-brown);border-radius:18px;display:flex;align-items:center;justify-content:center;margin:0 auto 14px;font-size:28px;}
+.login-brand h1{font-size:28px;color:var(--text-primary);margin-bottom:4px;}
+.login-brand h1 span{color:var(--accent);}
+.login-brand p{font-size:14px;color:var(--text-muted);font-weight:300;}
+.tab-switch{display:flex;background:var(--cream);border-radius:var(--radius-sm);padding:4px;margin-bottom:24px;gap:4px;}
+.tab-switch button{flex:1;padding:8px;border:none;border-radius:6px;font-family:'DM Sans',sans-serif;font-size:14px;cursor:pointer;transition:all 0.2s;}
+.tab-switch button.active{background:white;color:var(--accent);font-weight:500;box-shadow:0 1px 4px rgba(0,0,0,0.08);}
+.tab-switch button.inactive{background:transparent;color:var(--text-muted);font-weight:400;}
+.form-group{margin-bottom:16px;}
+.form-group label{display:block;font-size:12px;font-weight:500;text-transform:uppercase;letter-spacing:0.8px;color:var(--text-secondary);margin-bottom:7px;}
+.form-group input,.form-group select,.form-group textarea{width:100%;padding:11px 14px;border:1.5px solid var(--border-strong);border-radius:var(--radius-sm);font-family:'DM Sans',sans-serif;font-size:15px;color:var(--text-primary);background:var(--cream);transition:all 0.2s;outline:none;}
+.form-group input:focus,.form-group select:focus,.form-group textarea:focus{border-color:var(--accent);background:white;box-shadow:0 0 0 3px var(--accent-light);}
+.input-row{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+.btn-primary{width:100%;padding:13px;background:var(--accent);color:white;border:none;border-radius:var(--radius-sm);font-family:'DM Sans',sans-serif;font-size:15px;font-weight:500;cursor:pointer;transition:all 0.2s;margin-top:4px;}
+.btn-primary:hover{background:var(--accent-hover);transform:translateY(-1px);}
+.btn-primary:disabled{opacity:0.6;cursor:not-allowed;transform:none;}
+.login-error{background:#FEF2F2;border:1px solid #FECACA;color:#991B1B;padding:10px 14px;border-radius:var(--radius-sm);font-size:13px;margin-top:12px;display:none;}
+.info-box{background:var(--accent-light);border-radius:var(--radius-sm);padding:12px 14px;margin-bottom:14px;}
+.info-box p{font-size:13px;color:var(--accent);margin:0;}
 
-  h1, h2, h3, .display {
-    font-family: 'Fraunces', serif;
-    font-weight: 500;
-  }
+/* APP LAYOUT */
+#app{display:none;}
+.app-layout{display:grid;grid-template-columns:240px 1fr;min-height:calc(100vh - 60px);}
+.sidebar{background:white;border-right:1px solid var(--border);padding:24px 0;position:sticky;top:60px;height:calc(100vh - 60px);overflow-y:auto;}
+.sidebar-label{font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:1px;color:var(--text-muted);padding:0 24px;margin-bottom:6px;margin-top:18px;}
+.sidebar-item{display:flex;align-items:center;gap:10px;padding:9px 16px;margin:0 8px;border-radius:var(--radius-sm);cursor:pointer;font-size:14px;color:var(--text-secondary);font-weight:400;transition:all 0.15s;border:none;background:none;width:calc(100% - 16px);text-align:left;}
+.sidebar-item:hover{background:var(--cream);color:var(--text-primary);}
+.sidebar-item.active{background:var(--accent-light);color:var(--accent);font-weight:500;}
+.sidebar-item .icon{font-size:17px;width:20px;text-align:center;flex-shrink:0;}
+.content{padding:32px;max-width:1100px;}
+.page{display:none;}
+.page.active{display:block;}
+.page-header{margin-bottom:28px;}
+.page-header h2{font-size:26px;color:var(--text-primary);margin-bottom:4px;}
+.page-header p{font-size:14px;color:var(--text-muted);font-weight:300;}
 
-  /* ─── NAVBAR ─── */
-  .navbar {
-    background: var(--warm-brown);
-    padding: 0 24px;
-    height: 60px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    position: sticky;
-    top: 0;
-    z-index: 100;
-  }
-  .navbar-logo {
-    font-family: 'Fraunces', serif;
-    font-size: 22px;
-    color: var(--cream);
-    font-weight: 600;
-    letter-spacing: -0.3px;
-  }
-  .navbar-logo span { color: #E8A87C; }
-  .navbar-right { display: flex; align-items: center; gap: 16px; }
-  .navbar-user {
-    font-size: 13px;
-    color: rgba(250,247,242,0.7);
-    font-weight: 300;
-  }
-  .navbar-user strong { color: var(--cream); font-weight: 500; }
-  .btn-logout {
-    background: rgba(250,247,242,0.1);
-    border: 1px solid rgba(250,247,242,0.2);
-    color: var(--cream);
-    padding: 6px 14px;
-    border-radius: 20px;
-    font-family: 'DM Sans', sans-serif;
-    font-size: 13px;
-    cursor: pointer;
-    transition: all 0.2s;
-  }
-  .btn-logout:hover { background: rgba(250,247,242,0.2); }
+/* CARDS */
+.card{background:white;border-radius:var(--radius);border:1px solid var(--border);box-shadow:var(--shadow-soft);padding:24px;margin-bottom:20px;}
+.card-title{font-family:'Fraunces',serif;font-size:17px;font-weight:500;color:var(--text-primary);margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid var(--border);}
 
-  /* ─── LOGIN ─── */
-  #login-screen {
-    min-height: 100vh;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: var(--cream);
-    position: relative;
-    overflow: hidden;
-  }
-  #login-screen::before {
-    content: '';
-    position: absolute;
-    top: -100px; right: -100px;
-    width: 500px; height: 500px;
-    background: radial-gradient(circle, rgba(200,85,61,0.08) 0%, transparent 70%);
-    pointer-events: none;
-  }
-  #login-screen::after {
-    content: '';
-    position: absolute;
-    bottom: -80px; left: -80px;
-    width: 400px; height: 400px;
-    background: radial-gradient(circle, rgba(74,124,89,0.07) 0%, transparent 70%);
-    pointer-events: none;
-  }
-  .login-card {
-    background: white;
-    border-radius: var(--radius-lg);
-    padding: 48px 44px;
-    width: 100%;
-    max-width: 420px;
-    box-shadow: var(--shadow-card);
-    border: 1px solid var(--border);
-    position: relative;
-    z-index: 1;
-  }
-  .login-brand {
-    text-align: center;
-    margin-bottom: 36px;
-  }
-  .login-brand-icon {
-    width: 64px; height: 64px;
-    background: var(--warm-brown);
-    border-radius: 18px;
-    display: flex; align-items: center; justify-content: center;
-    margin: 0 auto 16px;
-    font-size: 28px;
-  }
-  .login-brand h1 {
-    font-size: 28px;
-    color: var(--text-primary);
-    margin-bottom: 4px;
-  }
-  .login-brand h1 span { color: var(--accent); }
-  .login-brand p {
-    font-size: 14px;
-    color: var(--text-muted);
-    font-weight: 300;
-  }
-  .form-group { margin-bottom: 18px; }
-  .form-group label {
-    display: block;
-    font-size: 12px;
-    font-weight: 500;
-    text-transform: uppercase;
-    letter-spacing: 0.8px;
-    color: var(--text-secondary);
-    margin-bottom: 7px;
-  }
-  .form-group input {
-    width: 100%;
-    padding: 12px 16px;
-    border: 1.5px solid var(--border-strong);
-    border-radius: var(--radius-sm);
-    font-family: 'DM Sans', sans-serif;
-    font-size: 15px;
-    color: var(--text-primary);
-    background: var(--cream);
-    transition: all 0.2s;
-    outline: none;
-  }
-  .form-group input:focus {
-    border-color: var(--accent);
-    background: white;
-    box-shadow: 0 0 0 3px var(--accent-light);
-  }
-  .btn-primary {
-    width: 100%;
-    padding: 13px;
-    background: var(--accent);
-    color: white;
-    border: none;
-    border-radius: var(--radius-sm);
-    font-family: 'DM Sans', sans-serif;
-    font-size: 15px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.2s;
-    margin-top: 6px;
-  }
-  .btn-primary:hover { background: var(--accent-hover); transform: translateY(-1px); }
-  .btn-primary:active { transform: translateY(0); }
-  .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
-  .login-error {
-    background: #FEF2F2;
-    border: 1px solid #FECACA;
-    color: #991B1B;
-    padding: 10px 14px;
-    border-radius: var(--radius-sm);
-    font-size: 13px;
-    margin-top: 14px;
-    display: none;
-  }
+/* STATS */
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:14px;margin-bottom:24px;}
+.stat-card{background:white;border:1px solid var(--border);border-radius:var(--radius);padding:20px;box-shadow:var(--shadow-soft);}
+.stat-label{font-size:12px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;}
+.stat-value{font-family:'Fraunces',serif;font-size:32px;font-weight:300;color:var(--text-primary);line-height:1;}
 
-  /* ─── LAYOUT PRINCIPALE ─── */
-  #app { display: none; }
-  .app-layout {
-    display: grid;
-    grid-template-columns: 240px 1fr;
-    min-height: calc(100vh - 60px);
-  }
+/* TABLE */
+.table-container{overflow-x:auto;}
+table{width:100%;border-collapse:collapse;font-size:14px;}
+th{text-align:left;padding:10px 14px;font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:0.7px;color:var(--text-muted);border-bottom:1px solid var(--border);background:var(--cream);}
+td{padding:12px 14px;border-bottom:1px solid var(--border);color:var(--text-primary);vertical-align:middle;}
+tr:last-child td{border-bottom:none;}
+tr:hover td{background:var(--cream);}
 
-  /* ─── SIDEBAR ─── */
-  .sidebar {
-    background: white;
-    border-right: 1px solid var(--border);
-    padding: 28px 0;
-    position: sticky;
-    top: 60px;
-    height: calc(100vh - 60px);
-    overflow-y: auto;
-  }
-  .sidebar-section {
-    padding: 0 16px;
-    margin-bottom: 8px;
-  }
-  .sidebar-label {
-    font-size: 10px;
-    font-weight: 500;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    color: var(--text-muted);
-    padding: 0 8px;
-    margin-bottom: 6px;
-    margin-top: 20px;
-  }
-  .sidebar-item {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 9px 12px;
-    border-radius: var(--radius-sm);
-    cursor: pointer;
-    font-size: 14px;
-    color: var(--text-secondary);
-    font-weight: 400;
-    transition: all 0.15s;
-    border: none;
-    background: none;
-    width: 100%;
-    text-align: left;
-  }
-  .sidebar-item:hover {
-    background: var(--cream);
-    color: var(--text-primary);
-  }
-  .sidebar-item.active {
-    background: var(--accent-light);
-    color: var(--accent);
-    font-weight: 500;
-  }
-  .sidebar-item .icon {
-    font-size: 17px;
-    width: 20px;
-    text-align: center;
-    flex-shrink: 0;
-  }
-  .sidebar-badge {
-    margin-left: auto;
-    background: var(--accent);
-    color: white;
-    font-size: 11px;
-    font-weight: 500;
-    padding: 2px 7px;
-    border-radius: 10px;
-    min-width: 20px;
-    text-align: center;
-  }
+/* AVATAR */
+.avatar{width:36px;height:36px;border-radius:50%;background:var(--accent-light);color:var(--accent);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:500;flex-shrink:0;}
+.avatar-sm{width:30px;height:30px;font-size:11px;}
+.worker-info{display:flex;align-items:center;gap:10px;}
+.worker-name{font-weight:500;font-size:14px;}
 
-  /* ─── CONTENT ─── */
-  .content {
-    padding: 32px;
-    max-width: 1100px;
-  }
-  .page { display: none; }
-  .page.active { display: block; }
+/* BADGE */
+.badge{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:500;}
+.badge-green{background:var(--green-light);color:var(--green);}
+.badge-amber{background:var(--amber-light);color:var(--amber);}
+.badge-red{background:#FEF2F2;color:#991B1B;}
+.badge-gray{background:var(--cream-dark);color:var(--text-muted);}
 
-  .page-header {
-    margin-bottom: 28px;
-  }
-  .page-header h2 {
-    font-size: 26px;
-    color: var(--text-primary);
-    margin-bottom: 4px;
-  }
-  .page-header p {
-    font-size: 14px;
-    color: var(--text-muted);
-    font-weight: 300;
-  }
+/* BUTTONS */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:var(--radius-sm);font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;cursor:pointer;transition:all 0.15s;border:1px solid transparent;text-decoration:none;}
+.btn-accent{background:var(--accent);color:white;border-color:var(--accent);}
+.btn-accent:hover{background:var(--accent-hover);}
+.btn-outline{background:white;color:var(--text-secondary);border-color:var(--border-strong);}
+.btn-outline:hover{background:var(--cream);border-color:var(--accent);color:var(--accent);}
+.btn-green{background:var(--green);color:white;}
+.btn-green:hover{background:#3a6347;}
+.btn-sm{padding:5px 10px;font-size:12px;}
+.btn-icon{padding:7px;border-radius:var(--radius-sm);background:white;border:1px solid var(--border-strong);cursor:pointer;color:var(--text-secondary);font-size:16px;transition:all 0.15s;display:inline-flex;align-items:center;justify-content:center;}
+.btn-icon:hover{border-color:var(--accent);color:var(--accent);}
+.btn-icon.danger:hover{border-color:#DC2626;color:#DC2626;}
 
-  /* ─── CARDS ─── */
-  .card {
-    background: white;
-    border-radius: var(--radius);
-    border: 1px solid var(--border);
-    box-shadow: var(--shadow-soft);
-    padding: 24px;
-    margin-bottom: 20px;
-  }
-  .card-title {
-    font-family: 'Fraunces', serif;
-    font-size: 17px;
-    font-weight: 500;
-    color: var(--text-primary);
-    margin-bottom: 16px;
-    padding-bottom: 12px;
-    border-bottom: 1px solid var(--border);
-  }
+/* ACTIONS BAR */
+.actions-bar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:20px;flex-wrap:wrap;}
+.actions-left{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+.search-input{padding:8px 14px;border:1.5px solid var(--border-strong);border-radius:var(--radius-sm);font-family:'DM Sans',sans-serif;font-size:14px;color:var(--text-primary);background:white;outline:none;transition:all 0.2s;width:220px;}
+.search-input:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-light);}
 
-  /* ─── STATS ─── */
-  .stats-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-    gap: 14px;
-    margin-bottom: 24px;
-  }
-  .stat-card {
-    background: white;
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 20px;
-    box-shadow: var(--shadow-soft);
-  }
-  .stat-label {
-    font-size: 12px;
-    color: var(--text-muted);
-    font-weight: 400;
-    margin-bottom: 8px;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-  }
-  .stat-value {
-    font-family: 'Fraunces', serif;
-    font-size: 32px;
-    font-weight: 300;
-    color: var(--text-primary);
-    line-height: 1;
-  }
-  .stat-sub {
-    font-size: 12px;
-    color: var(--text-muted);
-    margin-top: 6px;
-  }
+/* MODAL */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(44,26,14,0.5);z-index:1000;align-items:center;justify-content:center;padding:20px;}
+.modal-overlay.open{display:flex;}
+.modal{background:white;border-radius:var(--radius-lg);padding:32px;width:100%;max-width:500px;box-shadow:0 20px 60px rgba(44,26,14,0.2);max-height:90vh;overflow-y:auto;}
+.modal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;}
+.modal-header h3{font-size:20px;color:var(--text-primary);}
+.modal-close{width:32px;height:32px;border-radius:50%;border:none;background:var(--cream);cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center;color:var(--text-muted);transition:all 0.15s;}
+.modal-close:hover{background:var(--accent-light);color:var(--accent);}
+.modal-footer{display:flex;gap:10px;justify-content:flex-end;margin-top:24px;padding-top:20px;border-top:1px solid var(--border);}
 
-  /* ─── TABLE ─── */
-  .table-container { overflow-x: auto; }
-  table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 14px;
-  }
-  th {
-    text-align: left;
-    padding: 10px 14px;
-    font-size: 11px;
-    font-weight: 500;
-    text-transform: uppercase;
-    letter-spacing: 0.7px;
-    color: var(--text-muted);
-    border-bottom: 1px solid var(--border);
-    background: var(--cream);
-  }
-  td {
-    padding: 12px 14px;
-    border-bottom: 1px solid var(--border);
-    color: var(--text-primary);
-    vertical-align: middle;
-  }
-  tr:last-child td { border-bottom: none; }
-  tr:hover td { background: var(--cream); }
+/* ORE GRID */
+.ore-grid{display:grid;gap:8px;}
+.ore-day{display:grid;grid-template-columns:140px 1fr;align-items:center;gap:12px;padding:10px 14px;background:var(--cream);border-radius:var(--radius-sm);border:1px solid var(--border);}
+.ore-day-label{font-size:14px;font-weight:500;color:var(--text-secondary);display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+.ore-day-label .day-num{font-size:11px;color:var(--text-muted);font-weight:400;}
+.ore-input{padding:8px 12px;border:1.5px solid var(--border-strong);border-radius:var(--radius-sm);font-family:'DM Sans',sans-serif;font-size:14px;font-weight:500;width:90px;outline:none;transition:all 0.2s;background:white;color:var(--text-primary);}
+.ore-input:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-light);}
 
-  /* ─── AVATAR ─── */
-  .avatar {
-    width: 36px; height: 36px;
-    border-radius: 50%;
-    background: var(--accent-light);
-    color: var(--accent);
-    display: flex; align-items: center; justify-content: center;
-    font-size: 13px;
-    font-weight: 500;
-    flex-shrink: 0;
-  }
-  .avatar-sm { width: 30px; height: 30px; font-size: 11px; }
-  .worker-info {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-  }
-  .worker-name { font-weight: 500; font-size: 14px; }
-  .worker-role { font-size: 12px; color: var(--text-muted); }
+/* TAB BAR */
+.tab-bar{display:flex;gap:4px;border-bottom:1px solid var(--border);margin-bottom:24px;}
+.tab-btn{padding:9px 18px;border:none;background:none;font-family:'DM Sans',sans-serif;font-size:14px;color:var(--text-muted);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;white-space:nowrap;transition:all 0.15s;}
+.tab-btn:hover{color:var(--text-primary);}
+.tab-btn.active{color:var(--accent);border-bottom-color:var(--accent);font-weight:500;}
 
-  /* ─── BADGE ─── */
-  .badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    padding: 3px 10px;
-    border-radius: 20px;
-    font-size: 12px;
-    font-weight: 500;
-  }
-  .badge-green { background: var(--green-light); color: var(--green); }
-  .badge-amber { background: var(--amber-light); color: var(--amber); }
-  .badge-red { background: #FEF2F2; color: #991B1B; }
-  .badge-blue { background: #EFF6FF; color: #1D4ED8; }
-  .badge-gray { background: var(--cream-dark); color: var(--text-muted); }
+/* WORKER VIEW */
+.worker-header{background:var(--warm-brown);border-radius:var(--radius);padding:24px;color:var(--cream);margin-bottom:24px;display:flex;align-items:center;gap:16px;}
+.worker-header-avatar{width:56px;height:56px;border-radius:50%;background:rgba(250,247,242,0.2);display:flex;align-items:center;justify-content:center;font-size:20px;font-family:'Fraunces',serif;font-weight:500;color:white;flex-shrink:0;}
+.worker-header-info h3{font-size:20px;color:white;margin-bottom:2px;}
+.worker-header-info p{font-size:13px;color:rgba(250,247,242,0.6);font-weight:300;}
+.week-selector{display:flex;align-items:center;gap:12px;background:var(--cream);border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px 12px;}
+.week-selector span{font-size:14px;font-weight:500;color:var(--text-primary);min-width:140px;text-align:center;}
+.week-nav{background:none;border:none;cursor:pointer;color:var(--text-secondary);font-size:18px;padding:2px 6px;border-radius:4px;transition:all 0.15s;}
+.week-nav:hover{background:white;color:var(--accent);}
 
-  /* ─── BUTTONS ─── */
-  .btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 8px 16px;
-    border-radius: var(--radius-sm);
-    font-family: 'DM Sans', sans-serif;
-    font-size: 13px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.15s;
-    border: 1px solid transparent;
-    text-decoration: none;
-  }
-  .btn-accent {
-    background: var(--accent);
-    color: white;
-    border-color: var(--accent);
-  }
-  .btn-accent:hover { background: var(--accent-hover); }
-  .btn-outline {
-    background: white;
-    color: var(--text-secondary);
-    border-color: var(--border-strong);
-  }
-  .btn-outline:hover { background: var(--cream); border-color: var(--accent); color: var(--accent); }
-  .btn-green {
-    background: var(--green);
-    color: white;
-    border-color: var(--green);
-  }
-  .btn-green:hover { background: #3a6347; }
-  .btn-sm { padding: 5px 10px; font-size: 12px; }
-  .btn-icon {
-    padding: 7px;
-    border-radius: var(--radius-sm);
-    background: white;
-    border: 1px solid var(--border-strong);
-    cursor: pointer;
-    color: var(--text-secondary);
-    font-size: 16px;
-    transition: all 0.15s;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-  }
-  .btn-icon:hover { border-color: var(--accent); color: var(--accent); }
-  .btn-icon.danger:hover { border-color: #DC2626; color: #DC2626; }
+/* DAY CARDS */
+.day-card{background:white;border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px;margin-bottom:10px;display:grid;grid-template-columns:1fr auto;align-items:center;gap:16px;transition:all 0.15s;}
+.day-card:hover{border-color:var(--border-strong);box-shadow:var(--shadow-soft);}
+.day-card.confirmed{border-left:3px solid var(--green);}
+.day-card.pending{border-left:3px solid var(--amber);}
+.day-card-date{font-family:'Fraunces',serif;font-size:15px;font-weight:500;color:var(--text-primary);margin-bottom:3px;}
+.day-card-hours{font-size:13px;color:var(--text-muted);}
+.day-card-hours strong{color:var(--accent);}
 
-  /* ─── ACTIONS BAR ─── */
-  .actions-bar {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    margin-bottom: 20px;
-    flex-wrap: wrap;
-  }
-  .actions-left { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-  .search-input {
-    padding: 8px 14px;
-    border: 1.5px solid var(--border-strong);
-    border-radius: var(--radius-sm);
-    font-family: 'DM Sans', sans-serif;
-    font-size: 14px;
-    color: var(--text-primary);
-    background: white;
-    outline: none;
-    transition: all 0.2s;
-    width: 220px;
-  }
-  .search-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-light); }
+/* GIUSTIFICATIVO */
+.giustificativo-box{background:var(--amber-light);border:1px solid rgba(212,132,26,0.2);border-radius:var(--radius-sm);padding:14px;margin-top:10px;display:none;}
+.giustificativo-box.open{display:block;}
 
-  /* ─── MODAL ─── */
-  .modal-overlay {
-    display: none;
-    position: fixed;
-    inset: 0;
-    background: rgba(44,26,14,0.5);
-    z-index: 1000;
-    align-items: center;
-    justify-content: center;
-    padding: 20px;
-  }
-  .modal-overlay.open { display: flex; }
-  .modal {
-    background: white;
-    border-radius: var(--radius-lg);
-    padding: 32px;
-    width: 100%;
-    max-width: 500px;
-    box-shadow: 0 20px 60px rgba(44,26,14,0.2);
-    max-height: 90vh;
-    overflow-y: auto;
-  }
-  .modal-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 24px;
-  }
-  .modal-header h3 {
-    font-size: 20px;
-    color: var(--text-primary);
-  }
-  .modal-close {
-    width: 32px; height: 32px;
-    border-radius: 50%;
-    border: none;
-    background: var(--cream);
-    cursor: pointer;
-    font-size: 18px;
-    display: flex; align-items: center; justify-content: center;
-    color: var(--text-muted);
-    transition: all 0.15s;
-  }
-  .modal-close:hover { background: var(--accent-light); color: var(--accent); }
-  .modal-footer {
-    display: flex;
-    gap: 10px;
-    justify-content: flex-end;
-    margin-top: 24px;
-    padding-top: 20px;
-    border-top: 1px solid var(--border);
-  }
-  .input-row {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 14px;
-  }
+/* EMPTY STATE */
+.empty-state{text-align:center;padding:60px 20px;color:var(--text-muted);}
+.empty-state .empty-icon{font-size:48px;margin-bottom:16px;opacity:0.5;}
+.empty-state h3{font-size:18px;color:var(--text-secondary);margin-bottom:8px;font-family:'Fraunces',serif;font-weight:400;}
+.empty-state p{font-size:14px;font-weight:300;}
 
-  /* ─── ORE GRID ─── */
-  .ore-grid {
-    display: grid;
-    gap: 8px;
-  }
-  .ore-day {
-    display: grid;
-    grid-template-columns: 130px 1fr;
-    align-items: center;
-    gap: 12px;
-    padding: 10px 14px;
-    background: var(--cream);
-    border-radius: var(--radius-sm);
-    border: 1px solid var(--border);
-  }
-  .ore-day-label {
-    font-size: 14px;
-    font-weight: 500;
-    color: var(--text-secondary);
-    display: flex;
-    align-items: center;
-    gap: 6px;
-  }
-  .ore-day-label .day-num {
-    font-size: 11px;
-    color: var(--text-muted);
-    font-weight: 400;
-  }
-  .ore-input {
-    padding: 8px 12px;
-    border: 1.5px solid var(--border-strong);
-    border-radius: var(--radius-sm);
-    font-family: 'DM Sans', sans-serif;
-    font-size: 14px;
-    font-weight: 500;
-    width: 90px;
-    outline: none;
-    transition: all 0.2s;
-    background: white;
-    color: var(--text-primary);
-  }
-  .ore-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-light); }
-  .ore-day.festa { opacity: 0.5; }
+/* TOAST */
+.toast-container{position:fixed;bottom:24px;right:24px;z-index:9999;display:flex;flex-direction:column;gap:8px;}
+.toast{background:var(--warm-brown);color:var(--cream);padding:12px 18px;border-radius:var(--radius-sm);font-size:14px;box-shadow:0 4px 20px rgba(0,0,0,0.2);animation:slideIn 0.3s ease;max-width:320px;}
+.toast.success{background:var(--green);}
+.toast.error{background:#DC2626;}
+@keyframes slideIn{from{transform:translateX(100%);opacity:0;}to{transform:translateX(0);opacity:1;}}
 
-  /* ─── SCHEDULE TABS ─── */
-  .tab-bar {
-    display: flex;
-    gap: 4px;
-    border-bottom: 1px solid var(--border);
-    margin-bottom: 24px;
-    overflow-x: auto;
-  }
-  .tab-btn {
-    padding: 9px 18px;
-    border: none;
-    background: none;
-    font-family: 'DM Sans', sans-serif;
-    font-size: 14px;
-    color: var(--text-muted);
-    cursor: pointer;
-    border-bottom: 2px solid transparent;
-    margin-bottom: -1px;
-    white-space: nowrap;
-    transition: all 0.15s;
-    font-weight: 400;
-  }
-  .tab-btn:hover { color: var(--text-primary); }
-  .tab-btn.active {
-    color: var(--accent);
-    border-bottom-color: var(--accent);
-    font-weight: 500;
-  }
+/* MISC */
+.loading-spinner{width:36px;height:36px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin 0.8s linear infinite;margin:40px auto;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.text-muted{color:var(--text-muted);font-size:13px;}
+.ore-diff{font-weight:500;}
+.ore-diff.pos{color:var(--amber);}
+.ore-diff.neg{color:#DC2626;}
+.ore-diff.zero{color:var(--green);}
+.form-select{width:100%;padding:11px 14px;border:1.5px solid var(--border-strong);border-radius:var(--radius-sm);font-family:'DM Sans',sans-serif;font-size:15px;color:var(--text-primary);background:var(--cream);outline:none;transition:all 0.2s;cursor:pointer;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23A07856' fill='none' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center;}
+.form-select:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-light);}
 
-  /* ─── WORKER VIEW ─── */
-  .worker-header {
-    background: var(--warm-brown);
-    border-radius: var(--radius);
-    padding: 24px;
-    color: var(--cream);
-    margin-bottom: 24px;
-    display: flex;
-    align-items: center;
-    gap: 16px;
-  }
-  .worker-header-avatar {
-    width: 56px; height: 56px;
-    border-radius: 50%;
-    background: rgba(250,247,242,0.2);
-    display: flex; align-items: center; justify-content: center;
-    font-size: 20px;
-    font-family: 'Fraunces', serif;
-    font-weight: 500;
-    color: white;
-    flex-shrink: 0;
-  }
-  .worker-header-info h3 {
-    font-size: 20px;
-    color: white;
-    margin-bottom: 2px;
-  }
-  .worker-header-info p {
-    font-size: 13px;
-    color: rgba(250,247,242,0.6);
-    font-weight: 300;
-  }
-
-  /* ─── TIMESHEET DAY CARD ─── */
-  .day-card {
-    background: white;
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 18px 20px;
-    margin-bottom: 10px;
-    display: grid;
-    grid-template-columns: 1fr auto;
-    align-items: center;
-    gap: 16px;
-    transition: all 0.15s;
-  }
-  .day-card:hover { border-color: var(--border-strong); box-shadow: var(--shadow-soft); }
-  .day-card.confirmed { border-left: 3px solid var(--green); }
-  .day-card.pending { border-left: 3px solid var(--amber); }
-  .day-card.holiday { opacity: 0.5; }
-  .day-card-date {
-    font-family: 'Fraunces', serif;
-    font-size: 15px;
-    font-weight: 500;
-    color: var(--text-primary);
-    margin-bottom: 3px;
-  }
-  .day-card-hours {
-    font-size: 13px;
-    color: var(--text-muted);
-  }
-  .day-card-hours strong { color: var(--accent); }
-  .day-card-actions { display: flex; gap: 8px; align-items: center; }
-
-  /* ─── GIUSTIFICATIVO ─── */
-  .giustificativo-box {
-    background: var(--amber-light);
-    border: 1px solid rgba(212,132,26,0.2);
-    border-radius: var(--radius-sm);
-    padding: 14px;
-    margin-top: 10px;
-    display: none;
-  }
-  .giustificativo-box.open { display: block; }
-  .giustificativo-box select,
-  .giustificativo-box input,
-  .giustificativo-box textarea {
-    width: 100%;
-    padding: 8px 12px;
-    border: 1.5px solid rgba(212,132,26,0.3);
-    border-radius: var(--radius-sm);
-    font-family: 'DM Sans', sans-serif;
-    font-size: 14px;
-    background: white;
-    color: var(--text-primary);
-    outline: none;
-    margin-top: 8px;
-  }
-  .giustificativo-box textarea { resize: vertical; min-height: 70px; }
-  .giustificativo-box select:focus,
-  .giustificativo-box input:focus,
-  .giustificativo-box textarea:focus {
-    border-color: var(--amber);
-  }
-
-  /* ─── EMPTY STATE ─── */
-  .empty-state {
-    text-align: center;
-    padding: 60px 20px;
-    color: var(--text-muted);
-  }
-  .empty-state .empty-icon { font-size: 48px; margin-bottom: 16px; opacity: 0.5; }
-  .empty-state h3 {
-    font-size: 18px;
-    color: var(--text-secondary);
-    margin-bottom: 8px;
-    font-family: 'Fraunces', serif;
-    font-weight: 400;
-  }
-  .empty-state p { font-size: 14px; font-weight: 300; }
-
-  /* ─── TOAST ─── */
-  .toast-container {
-    position: fixed;
-    bottom: 24px; right: 24px;
-    z-index: 9999;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-  }
-  .toast {
-    background: var(--warm-brown);
-    color: var(--cream);
-    padding: 12px 18px;
-    border-radius: var(--radius-sm);
-    font-size: 14px;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.2);
-    animation: slideIn 0.3s ease;
-    max-width: 320px;
-  }
-  .toast.success { background: var(--green); }
-  .toast.error { background: #DC2626; }
-  @keyframes slideIn {
-    from { transform: translateX(100%); opacity: 0; }
-    to { transform: translateX(0); opacity: 1; }
-  }
-
-  /* ─── WEEK SELECTOR ─── */
-  .week-selector {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    background: var(--cream);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-sm);
-    padding: 8px 12px;
-  }
-  .week-selector span {
-    font-size: 14px;
-    font-weight: 500;
-    color: var(--text-primary);
-    min-width: 140px;
-    text-align: center;
-  }
-  .week-nav {
-    background: none;
-    border: none;
-    cursor: pointer;
-    color: var(--text-secondary);
-    font-size: 18px;
-    padding: 2px 6px;
-    border-radius: 4px;
-    transition: all 0.15s;
-  }
-  .week-nav:hover { background: white; color: var(--accent); }
-
-  /* ─── RIEPILOGO ─── */
-  .riepilogo-row {
-    display: grid;
-    grid-template-columns: 200px repeat(5, 1fr) auto;
-    gap: 8px;
-    align-items: center;
-    padding: 10px 0;
-    border-bottom: 1px solid var(--border);
-    font-size: 13px;
-  }
-  .riepilogo-row.header {
-    font-size: 11px;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    color: var(--text-muted);
-    font-weight: 500;
-    padding-bottom: 8px;
-  }
-
-  /* ─── MOBILE RESPONSIVE ─── */
-  @media (max-width: 768px) {
-    .app-layout { grid-template-columns: 1fr; }
-    .sidebar {
-      position: fixed;
-      bottom: 0; left: 0; right: 0;
-      top: auto;
-      height: 64px;
-      padding: 0;
-      display: flex;
-      flex-direction: row;
-      border-right: none;
-      border-top: 1px solid var(--border);
-      overflow: visible;
-      z-index: 50;
-    }
-    .sidebar-section { display: contents; }
-    .sidebar-label { display: none; }
-    .sidebar-item {
-      flex: 1;
-      flex-direction: column;
-      gap: 3px;
-      padding: 6px 4px;
-      border-radius: 0;
-      font-size: 11px;
-      justify-content: center;
-    }
-    .sidebar-item .icon { font-size: 20px; width: auto; }
-    .sidebar-item span:not(.icon):not(.sidebar-badge) { font-size: 10px; }
-    .content { padding: 20px 16px 80px; }
-    .stats-grid { grid-template-columns: 1fr 1fr; }
-    .input-row { grid-template-columns: 1fr; }
-    .search-input { width: 100%; }
-    .actions-bar { flex-direction: column; align-items: flex-start; }
-  }
-
-  /* ─── LOADING ─── */
-  .loading-spinner {
-    width: 36px; height: 36px;
-    border: 3px solid var(--border);
-    border-top-color: var(--accent);
-    border-radius: 50%;
-    animation: spin 0.8s linear infinite;
-    margin: 40px auto;
-  }
-  @keyframes spin { to { transform: rotate(360deg); } }
-
-  /* ─── NOTIFICHE BADGE ─── */
-  .pending-count {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    min-width: 18px; height: 18px;
-    background: var(--accent);
-    color: white;
-    border-radius: 9px;
-    font-size: 11px;
-    font-weight: 600;
-    padding: 0 5px;
-  }
-
-  /* ─── SELECT ─── */
-  .form-select {
-    width: 100%;
-    padding: 11px 14px;
-    border: 1.5px solid var(--border-strong);
-    border-radius: var(--radius-sm);
-    font-family: 'DM Sans', sans-serif;
-    font-size: 15px;
-    color: var(--text-primary);
-    background: var(--cream);
-    outline: none;
-    transition: all 0.2s;
-    cursor: pointer;
-    appearance: none;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23A07856' fill='none' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");
-    background-repeat: no-repeat;
-    background-position: right 14px center;
-  }
-  .form-select:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-light); }
-
-  /* Differenze ore */
-  .ore-diff { font-weight: 500; }
-  .ore-diff.pos { color: var(--amber); }
-  .ore-diff.neg { color: #DC2626; }
-  .ore-diff.zero { color: var(--green); }
-
-  /* Helper */
-  .text-muted { color: var(--text-muted); font-size: 13px; }
-  .mt-8 { margin-top: 8px; }
-  .mt-16 { margin-top: 16px; }
-  .flex-gap { display: flex; gap: 10px; flex-wrap: wrap; }
+/* MOBILE */
+@media(max-width:768px){
+  .app-layout{grid-template-columns:1fr;}
+  .sidebar{position:fixed;bottom:0;left:0;right:0;top:auto;height:64px;padding:0;display:flex;flex-direction:row;border-right:none;border-top:1px solid var(--border);overflow:visible;z-index:50;}
+  .sidebar-label{display:none;}
+  .sidebar-item{flex:1;flex-direction:column;gap:3px;padding:6px 4px;border-radius:0;font-size:10px;justify-content:center;margin:0;width:auto;}
+  .sidebar-item .icon{font-size:20px;width:auto;}
+  .content{padding:20px 16px 80px;}
+  .stats-grid{grid-template-columns:1fr 1fr;}
+  .input-row{grid-template-columns:1fr;}
+  .search-input{width:100%;}
+  .actions-bar{flex-direction:column;align-items:flex-start;}
+  .login-card{padding:32px 24px;}
+}
 </style>
 </head>
 <body>
 
-<!-- ═══════════════════════════════════════════════════
-     LOGIN SCREEN
-═══════════════════════════════════════════════════ -->
+<!-- LOGIN -->
 <div id="login-screen">
   <div class="login-card">
     <div class="login-brand">
@@ -925,24 +222,16 @@
       <h1>Ore <span>OK</span></h1>
       <p>Gestione personale mensa scolastica</p>
     </div>
-
-    <!-- TAB SWITCH -->
-    <div style="display:flex;background:var(--cream);border-radius:var(--radius-sm);padding:4px;margin-bottom:24px;gap:4px;">
-      <button id="tab-login" onclick="switchAuthTab('login')"
-        style="flex:1;padding:8px;border:none;border-radius:6px;font-family:DM Sans,sans-serif;font-size:14px;font-weight:500;cursor:pointer;background:white;color:var(--accent);box-shadow:0 1px 4px rgba(0,0,0,0.08);transition:all 0.2s;">
-        Accedi
-      </button>
-      <button id="tab-register" onclick="switchAuthTab('register')"
-        style="flex:1;padding:8px;border:none;border-radius:6px;font-family:DM Sans,sans-serif;font-size:14px;font-weight:400;cursor:pointer;background:transparent;color:var(--text-muted);transition:all 0.2s;">
-        Registrati
-      </button>
+    <div class="tab-switch">
+      <button class="active" id="tab-login" onclick="switchTab('login')">Accedi</button>
+      <button class="inactive" id="tab-register" onclick="switchTab('register')">Registrati</button>
     </div>
 
     <!-- LOGIN FORM -->
     <div id="form-login">
       <div class="form-group">
         <label>Email</label>
-        <input type="email" id="login-email" placeholder="nome@scuola.it" autocomplete="email">
+        <input type="email" id="login-email" placeholder="nome@email.com" autocomplete="email">
       </div>
       <div class="form-group">
         <label>Password</label>
@@ -953,7 +242,7 @@
 
     <!-- REGISTER FORM -->
     <div id="form-register" style="display:none;">
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+      <div class="input-row">
         <div class="form-group">
           <label>Nome</label>
           <input type="text" id="reg-nome" placeholder="Mario">
@@ -971,43 +260,13 @@
         <label>Password</label>
         <input type="password" id="reg-password" placeholder="Min. 6 caratteri">
       </div>
-
-      <!-- RUOLO -->
       <div class="form-group">
-        <label>Sei un responsabile o un collaboratore?</label>
-        <div style="display:flex;gap:10px;margin-top:6px;">
-          <label style="flex:1;display:flex;align-items:center;gap:8px;padding:10px 14px;border:1.5px solid var(--accent);border-radius:var(--radius-sm);cursor:pointer;background:var(--accent-light);transition:all 0.2s;" id="role-worker-box" onclick="selectRole('worker')">
-            <input type="radio" name="reg-ruolo" value="worker" id="role-worker" checked style="width:auto;accent-color:var(--accent);">
-            <span style="font-size:14px;">👤 Collaboratore</span>
-          </label>
-          <label style="flex:1;display:flex;align-items:center;gap:8px;padding:10px 14px;border:1.5px solid var(--border-strong);border-radius:var(--radius-sm);cursor:pointer;transition:all 0.2s;" id="role-admin-box" onclick="selectRole('admin')">
-            <input type="radio" name="reg-ruolo" value="admin" id="role-admin" style="width:auto;accent-color:var(--accent);">
-            <span style="font-size:14px;">👑 Responsabile</span>
-          </label>
-        </div>
+        <label>Codice invito</label>
+        <input type="text" id="reg-codice" placeholder="Codice ricevuto dalla responsabile" style="text-transform:uppercase;letter-spacing:1px;">
       </div>
-
-        <!-- CODICE INVITO (solo collaboratore) -->
-      <div id="worker-code-box">
-        <div class="form-group">
-          <label>Codice invito <span style="color:var(--accent)">*</span></label>
-          <input type="text" id="reg-invite-code" placeholder="Inserisci il codice ricevuto dalla responsabile" style="text-transform:uppercase;letter-spacing:1px;">
-        </div>
-        <div class="form-group">
-          <label>Qualifica <span style="color:var(--text-muted);font-weight:300">(opzionale)</span></label>
-          <input type="text" id="reg-qualifica" placeholder="Es. Cuoco, Addetto mensa...">
-        </div>
+      <div class="info-box">
+        <p>📋 Usa la stessa email con cui sei stato/a registrato/a e il codice invito ricevuto.</p>
       </div>
-
-      <!-- NESSUN CODICE PER RESPONSABILE -->
-      <div id="admin-register-box" style="display:none;">
-        <div style="background:var(--green-light);border-radius:var(--radius-sm);padding:12px 14px;margin-bottom:4px;">
-          <p style="font-size:13px;color:var(--green);margin:0;">
-            👑 Ti registrerai come responsabile. Potrai poi condividere il tuo codice invito ai collaboratori.
-          </p>
-        </div>
-      </div>
-
       <button class="btn-primary" id="btn-register" onclick="doRegister()">Crea account</button>
     </div>
 
@@ -1015,11 +274,8 @@
   </div>
 </div>
 
-<!-- ═══════════════════════════════════════════════════
-     APP
-═══════════════════════════════════════════════════ -->
+<!-- APP -->
 <div id="app">
-  <!-- NAVBAR -->
   <nav class="navbar">
     <div class="navbar-logo">Ore <span>OK</span></div>
     <div class="navbar-right">
@@ -1027,181 +283,107 @@
       <button class="btn-logout" onclick="doLogout()">Esci</button>
     </div>
   </nav>
-
   <div class="app-layout">
+
     <!-- SIDEBAR ADMIN -->
     <aside class="sidebar" id="sidebar-admin" style="display:none">
-      <div class="sidebar-section">
-        <div class="sidebar-label">Principale</div>
-        <button class="sidebar-item active" onclick="showPage('dashboard')" data-page="dashboard">
-          <span class="icon">📊</span><span>Dashboard</span>
-        </button>
-        <button class="sidebar-item" onclick="showPage('collaboratori')" data-page="collaboratori">
-          <span class="icon">👥</span><span>Collaboratori</span>
-        </button>
-      </div>
-      <div class="sidebar-section">
-        <div class="sidebar-label">Orari</div>
-        <button class="sidebar-item" onclick="showPage('invia-orari')" data-page="invia-orari">
-          <span class="icon">📤</span><span>Invia Orari</span>
-        </button>
-        <button class="sidebar-item" onclick="showPage('riepilogo')" data-page="riepilogo">
-          <span class="icon">📋</span><span>Riepilogo</span>
-        </button>
-      </div>
+      <div class="sidebar-label">Principale</div>
+      <button class="sidebar-item active" onclick="showPage('dashboard')" data-page="dashboard"><span class="icon">📊</span><span>Dashboard</span></button>
+      <button class="sidebar-item" onclick="showPage('collaboratori')" data-page="collaboratori"><span class="icon">👥</span><span>Collaboratori</span></button>
+      <div class="sidebar-label">Orari</div>
+      <button class="sidebar-item" onclick="showPage('invia-orari')" data-page="invia-orari"><span class="icon">📤</span><span>Invia Orari</span></button>
+      <button class="sidebar-item" onclick="showPage('riepilogo')" data-page="riepilogo"><span class="icon">📋</span><span>Riepilogo</span></button>
     </aside>
 
     <!-- SIDEBAR WORKER -->
     <aside class="sidebar" id="sidebar-worker" style="display:none">
-      <div class="sidebar-section">
-        <button class="sidebar-item active" onclick="showPage('worker-home')" data-page="worker-home">
-          <span class="icon">🏠</span><span>Le mie ore</span>
-        </button>
-        <button class="sidebar-item" onclick="showPage('worker-storico')" data-page="worker-storico">
-          <span class="icon">📅</span><span>Storico</span>
-        </button>
-      </div>
+      <button class="sidebar-item active" onclick="showPage('worker-home')" data-page="worker-home"><span class="icon">🏠</span><span>Le mie ore</span></button>
+      <button class="sidebar-item" onclick="showPage('worker-storico')" data-page="worker-storico"><span class="icon">📅</span><span>Storico</span></button>
     </aside>
 
-    <!-- CONTENT -->
     <main class="content">
 
-      <!-- ── DASHBOARD (ADMIN) ── -->
+      <!-- DASHBOARD -->
       <div id="page-dashboard" class="page active">
-        <div class="page-header">
-          <h2>Dashboard</h2>
-          <p id="dashboard-subtitle">Panoramica del personale</p>
+        <div class="page-header"><h2>Dashboard</h2><p>Panoramica del personale</p></div>
+        <div class="stats-grid">
+          <div class="stat-card"><div class="stat-label">Collaboratori attivi</div><div class="stat-value" id="stat-workers">—</div></div>
+          <div class="stat-card"><div class="stat-label">Conferme pendenti</div><div class="stat-value" id="stat-pending">—</div></div>
+          <div class="stat-card"><div class="stat-label">Ore inviate questo mese</div><div class="stat-value" id="stat-ore-mese">—</div></div>
+          <div class="stat-card"><div class="stat-label">Ore confermate</div><div class="stat-value" id="stat-ore-conf">—</div></div>
         </div>
-        <div class="stats-grid" id="stats-grid">
-          <div class="stat-card">
-            <div class="stat-label">Collaboratori attivi</div>
-            <div class="stat-value" id="stat-workers">—</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-label">Conferme pendenti</div>
-            <div class="stat-value" id="stat-pending">—</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-label">Ore inviate questo mese</div>
-            <div class="stat-value" id="stat-ore-mese">—</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-label">Ore confermate</div>
-            <div class="stat-value" id="stat-ore-conf">—</div>
-          </div>
-        </div>
-
         <div class="card">
           <div class="card-title">Stato conferme — settimana corrente</div>
-          <div id="dashboard-list">
-            <div class="loading-spinner"></div>
-          </div>
+          <div id="dashboard-list"><div class="loading-spinner"></div></div>
         </div>
       </div>
 
-      <!-- ── COLLABORATRICI (ADMIN) ── -->
+      <!-- COLLABORATORI -->
       <div id="page-collaboratori" class="page">
-        <div class="page-header">
-          <h2>Collaboratori</h2>
-          <p>Gestisci l'anagrafica del personale</p>
-        </div>
+        <div class="page-header"><h2>Collaboratori</h2><p>Gestisci l'anagrafica del personale</p></div>
         <div class="actions-bar">
           <div class="actions-left">
-            <input class="search-input" type="text" placeholder="🔍  Cerca collaboratore..." oninput="filterWorkers(this.value)" id="search-workers">
+            <input class="search-input" type="text" placeholder="🔍  Cerca..." oninput="filterWorkers(this.value)">
           </div>
-          <button class="btn btn-accent" onclick="openModal('modal-add-worker')">
-            ＋ Aggiungi collaboratore
-          </button>
+          <button class="btn btn-accent" onclick="openModal('modal-add-worker')">＋ Aggiungi collaboratore</button>
         </div>
-        <div class="card" style="padding:0; overflow:hidden">
+        <div class="card" style="padding:0;overflow:hidden">
           <div class="table-container">
-            <table id="workers-table">
-              <thead>
-                <tr>
-                  <th>Nome</th>
-                  <th>Email</th>
-                  <th>Ruolo</th>
-                  <th>Stato</th>
-                  <th></th>
-                </tr>
-              </thead>
-              <tbody id="workers-tbody">
-                <tr><td colspan="5"><div class="loading-spinner"></div></td></tr>
-              </tbody>
+            <table>
+              <thead><tr><th>Nome</th><th>Email</th><th>Ruolo</th><th>Stato</th><th></th></tr></thead>
+              <tbody id="workers-tbody"><tr><td colspan="5"><div class="loading-spinner"></div></td></tr></tbody>
             </table>
           </div>
         </div>
       </div>
 
-      <!-- ── INVIA ORARI (ADMIN) ── -->
+      <!-- INVIA ORARI -->
       <div id="page-invia-orari" class="page">
-        <div class="page-header">
-          <h2>Invia Orari</h2>
-          <p>Assegna le ore di lavoro settimanali o mensili</p>
-        </div>
-
+        <div class="page-header"><h2>Invia Orari</h2><p>Assegna le ore di lavoro settimanali o mensili</p></div>
         <div class="tab-bar">
-          <button class="tab-btn active" onclick="switchScheduleTab('settimanale',this)">Settimanale</button>
-          <button class="tab-btn" onclick="switchScheduleTab('mensile',this)">Mensile</button>
+          <button class="tab-btn active" onclick="switchScheduleTab('week',this)">Settimanale</button>
+          <button class="tab-btn" onclick="switchScheduleTab('month',this)">Mensile</button>
         </div>
-
         <div class="card">
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px">
             <div class="form-group" style="margin:0">
               <label>Collaboratore</label>
-              <select class="form-select" id="schedule-worker-select" onchange="loadScheduleWorker()">
+              <select class="form-select" id="schedule-worker-select" onchange="renderScheduleForm()">
                 <option value="">— Seleziona —</option>
               </select>
             </div>
             <div class="form-group" style="margin:0">
               <label id="schedule-period-label">Settimana</label>
-              <input type="week" id="schedule-week" class="ore-input" style="width:100%;padding:10px 14px;" onchange="loadSchedulePeriod()">
+              <input type="week" id="schedule-period" class="ore-input" style="width:100%;padding:10px 14px;" onchange="renderScheduleForm()">
             </div>
           </div>
-
           <div id="schedule-form-area">
-            <div class="empty-state">
-              <div class="empty-icon">📆</div>
-              <h3>Seleziona collaboratore e periodo</h3>
-              <p>Poi potrai inserire le ore per ogni giorno</p>
-            </div>
+            <div class="empty-state"><div class="empty-icon">📆</div><h3>Seleziona collaboratore e periodo</h3></div>
           </div>
         </div>
       </div>
 
-      <!-- ── RIEPILOGO (ADMIN) ── -->
+      <!-- RIEPILOGO -->
       <div id="page-riepilogo" class="page">
-        <div class="page-header">
-          <h2>Riepilogo mensile</h2>
-          <p>Ore richieste vs effettive per ogni collaboratore</p>
-        </div>
+        <div class="page-header"><h2>Riepilogo mensile</h2><p>Ore richieste vs effettive</p></div>
         <div class="actions-bar">
-          <div class="actions-left">
-            <input type="month" id="riepilogo-month" class="ore-input" style="padding:8px 12px;" onchange="loadRiepilogo()">
-          </div>
-          <button class="btn btn-green" onclick="exportExcel()">
-            ⬇ Esporta Excel
-          </button>
+          <input type="month" id="riepilogo-month" class="ore-input" style="padding:8px 12px;" onchange="loadRiepilogo()">
+          <button class="btn btn-green" onclick="exportExcel()">⬇ Esporta Excel</button>
         </div>
         <div class="card" id="riepilogo-content">
-          <div class="empty-state">
-            <div class="empty-icon">📊</div>
-            <h3>Seleziona un mese</h3>
-            <p>Verrà mostrato il riepilogo di tutte le collaboratori</p>
-          </div>
+          <div class="empty-state"><div class="empty-icon">📊</div><h3>Seleziona un mese</h3></div>
         </div>
       </div>
 
-      <!-- ── WORKER HOME ── -->
+      <!-- WORKER HOME -->
       <div id="page-worker-home" class="page">
-        <div id="worker-header-box" class="worker-header">
+        <div class="worker-header">
           <div class="worker-header-avatar" id="worker-avatar-big">?</div>
           <div class="worker-header-info">
             <h3 id="worker-fullname">—</h3>
-            <p id="worker-subtitle">Settimana corrente</p>
+            <p id="worker-subtitle">Le tue ore</p>
           </div>
         </div>
-
         <div class="actions-bar">
           <div class="week-selector">
             <button class="week-nav" onclick="changeWorkerWeek(-1)">‹</button>
@@ -1210,36 +392,21 @@
           </div>
           <div id="worker-pending-info" class="text-muted"></div>
         </div>
-
-        <div id="worker-days-list">
-          <div class="loading-spinner"></div>
-        </div>
+        <div id="worker-days-list"><div class="loading-spinner"></div></div>
       </div>
 
-      <!-- ── WORKER STORICO ── -->
+      <!-- WORKER STORICO -->
       <div id="page-worker-storico" class="page">
-        <div class="page-header">
-          <h2>Storico ore</h2>
-          <p>Riepilogo dei tuoi mesi precedenti</p>
-        </div>
+        <div class="page-header"><h2>Storico ore</h2><p>Riepilogo mensile personale</p></div>
         <input type="month" id="storico-month" class="ore-input" style="padding:8px 12px;margin-bottom:20px;" onchange="loadStorico()">
-        <div id="storico-content">
-          <div class="empty-state">
-            <div class="empty-icon">📅</div>
-            <h3>Seleziona un mese</h3>
-          </div>
-        </div>
+        <div id="storico-content"><div class="empty-state"><div class="empty-icon">📅</div><h3>Seleziona un mese</h3></div></div>
       </div>
 
     </main>
   </div>
 </div>
 
-<!-- ═══════════════════════════════════════════════════
-     MODALI
-═══════════════════════════════════════════════════ -->
-
-<!-- Aggiungi collaboratore -->
+<!-- MODAL AGGIUNGI COLLABORATORE -->
 <div class="modal-overlay" id="modal-add-worker">
   <div class="modal">
     <div class="modal-header">
@@ -1247,24 +414,11 @@
       <button class="modal-close" onclick="closeModal('modal-add-worker')">✕</button>
     </div>
     <div class="input-row">
-      <div class="form-group">
-        <label>Nome</label>
-        <input type="text" id="worker-nome" placeholder="Maria">
-      </div>
-      <div class="form-group">
-        <label>Cognome</label>
-        <input type="text" id="worker-cognome" placeholder="Rossi">
-      </div>
+      <div class="form-group"><label>Nome</label><input type="text" id="worker-nome" placeholder="Mario"></div>
+      <div class="form-group"><label>Cognome</label><input type="text" id="worker-cognome" placeholder="Rossi"></div>
     </div>
-    <div class="form-group">
-      <label>Email</label>
-      <input type="email" id="worker-email" placeholder="es. mario.rossi@email.com">
-    </div>
-
-    <div class="form-group">
-      <label>Ruolo / Qualifica</label>
-      <input type="text" id="worker-ruolo" placeholder="Es. Cuoco, Addetto, ecc.">
-    </div>
+    <div class="form-group"><label>Email</label><input type="email" id="worker-email" placeholder="mario.rossi@email.com"></div>
+    <div class="form-group"><label>Ruolo / Qualifica</label><input type="text" id="worker-ruolo" placeholder="Es. Cuoco, Addetto..."></div>
     <div class="modal-footer">
       <button class="btn btn-outline" onclick="closeModal('modal-add-worker')">Annulla</button>
       <button class="btn btn-accent" onclick="addWorker()">Aggiungi</button>
@@ -1272,40 +426,38 @@
   </div>
 </div>
 
-<!-- Conferma ore worker (con variazione) -->
+<!-- MODAL CONFERMA ORE -->
 <div class="modal-overlay" id="modal-conferma-ore">
   <div class="modal">
     <div class="modal-header">
       <h3 id="modal-conferma-title">Conferma giornata</h3>
       <button class="modal-close" onclick="closeModal('modal-conferma-ore')">✕</button>
     </div>
-    <div id="modal-conferma-body">
-      <p class="text-muted" style="margin-bottom:16px">Ore previste: <strong id="conf-ore-previste">—</strong></p>
-      <div class="form-group">
-        <label>Ore effettivamente lavorate</label>
-        <input type="number" id="conf-ore-effettive" min="0" max="24" step="0.5" placeholder="6.0">
+    <p class="text-muted" style="margin-bottom:16px">Ore previste: <strong id="conf-ore-previste">—</strong></p>
+    <div class="form-group">
+      <label>Ore effettivamente lavorate</label>
+      <input type="number" id="conf-ore-effettive" min="0" max="24" step="0.5" placeholder="6.0" oninput="checkVariazione()">
+    </div>
+    <div class="giustificativo-box" id="giust-box">
+      <div class="form-group" style="margin:0">
+        <label>Motivo variazione</label>
+        <select id="giust-tipo" onchange="checkMalattia()" class="form-select" style="margin-top:8px">
+          <option value="">— Seleziona —</option>
+          <option value="malattia">Malattia</option>
+          <option value="permesso">Permesso</option>
+          <option value="straordinario">Straordinario</option>
+          <option value="altro">Altro</option>
+        </select>
       </div>
-      <div id="giustificativo-container" class="giustificativo-box">
+      <div id="giust-protocollo-box" style="display:none;margin-top:10px">
         <div class="form-group" style="margin:0">
-          <label>Motivo della variazione</label>
-          <select id="giust-tipo" onchange="checkMalattia()">
-            <option value="">— Seleziona motivo —</option>
-            <option value="malattia">Malattia</option>
-            <option value="permesso">Permesso</option>
-            <option value="straordinario">Straordinario</option>
-            <option value="altro">Altro</option>
-          </select>
+          <label>N° protocollo malattia <span style="color:var(--accent)">*</span></label>
+          <input type="text" id="giust-protocollo" placeholder="Es. INPS-2024-XXXXX">
         </div>
-        <div id="giust-protocollo-box" style="display:none">
-          <div class="form-group mt-8" style="margin:0">
-            <label>N° protocollo malattia <span style="color:var(--accent)">*</span></label>
-            <input type="text" id="giust-protocollo" placeholder="Es. INPS-2024-XXXXX">
-          </div>
-        </div>
-        <div class="form-group mt-8" style="margin:0">
-          <label>Note aggiuntive</label>
-          <textarea id="giust-note" placeholder="Descrizione opzionale..."></textarea>
-        </div>
+      </div>
+      <div class="form-group" style="margin-top:10px;margin-bottom:0">
+        <label>Note</label>
+        <textarea id="giust-note" rows="2" style="width:100%;padding:8px 12px;border:1.5px solid rgba(212,132,26,0.3);border-radius:var(--radius-sm);font-family:'DM Sans',sans-serif;font-size:14px;resize:vertical;" placeholder="Descrizione opzionale..."></textarea>
       </div>
     </div>
     <div class="modal-footer">
@@ -1315,14 +467,10 @@
   </div>
 </div>
 
-<!-- Toast container -->
 <div class="toast-container" id="toast-container"></div>
 
-<!-- ═══════════════════════════════════════════════════
-     JAVASCRIPT
-═══════════════════════════════════════════════════ -->
 <script>
-// ── FIREBASE CONFIG ── (sostituire con i propri dati)
+// ── FIREBASE CONFIG ──
 const firebaseConfig = {
   apiKey: "AIzaSyCzVSr4VXXvjxX15s-DuiAcnNVRmogEKI8",
   authDomain: "oreok-69522.firebaseapp.com",
@@ -1335,143 +483,21 @@ firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
 
-// ── STATO GLOBALE ──
+// ── STATO ──
 let currentUser = null;
 let currentUserData = null;
+let allWorkers = [];
 let workerWeekOffset = 0;
 let currentConfirmDay = null;
-let allWorkers = [];
+let scheduleType = 'week';
+let isRegistering = false;
 
-// ── GIORNI SETTIMANA ──
-const GIORNI = ['Lunedì','Martedì','Mercoledì','Giovedì','Venerdì','Sabato','Domenica'];
+const GIORNI = ['Lunedi','Martedi','Mercoledi','Giovedi','Venerdi','Sabato','Domenica'];
 const GIORNI_SHORT = ['Lun','Mar','Mer','Gio','Ven','Sab','Dom'];
 
-// ─────────────────────────────────────────────────────
-// AUTH
-// ─────────────────────────────────────────────────────
-// ── SWITCH TAB LOGIN/REGISTER ──
-function switchAuthTab(tab) {
-  const isLogin = tab === 'login';
-  document.getElementById('form-login').style.display = isLogin ? 'block' : 'none';
-  document.getElementById('form-register').style.display = isLogin ? 'none' : 'block';
-  document.getElementById('login-error').style.display = 'none';
-
-  const tLogin = document.getElementById('tab-login');
-  const tReg = document.getElementById('tab-register');
-  if (isLogin) {
-    tLogin.style.background = 'white';
-    tLogin.style.color = 'var(--accent)';
-    tLogin.style.fontWeight = '500';
-    tLogin.style.boxShadow = '0 1px 4px rgba(0,0,0,0.08)';
-    tReg.style.background = 'transparent';
-    tReg.style.color = 'var(--text-muted)';
-    tReg.style.fontWeight = '400';
-    tReg.style.boxShadow = 'none';
-  } else {
-    tReg.style.background = 'white';
-    tReg.style.color = 'var(--accent)';
-    tReg.style.fontWeight = '500';
-    tReg.style.boxShadow = '0 1px 4px rgba(0,0,0,0.08)';
-    tLogin.style.background = 'transparent';
-    tLogin.style.color = 'var(--text-muted)';
-    tLogin.style.fontWeight = '400';
-    tLogin.style.boxShadow = 'none';
-  }
-}
-
-
-
-// ── REGISTRAZIONE ──
-async function doRegister() {
-  const nome = document.getElementById('reg-nome').value.trim();
-  const cognome = document.getElementById('reg-cognome').value.trim();
-  const email = document.getElementById('reg-email').value.trim();
-  const pw = document.getElementById('reg-password').value.trim();
-  const inviteCode = document.getElementById('reg-invite-code').value.trim().toUpperCase();
-  const qualifica = document.getElementById('reg-qualifica')?.value.trim() || '';
-
-  document.getElementById('login-error').style.display = 'none';
-
-  if (!nome || !cognome || !email || !pw) { showLoginError('Compila tutti i campi obbligatori'); return; }
-  if (pw.length < 6) { showLoginError('La password deve essere di almeno 6 caratteri'); return; }
-  if (!inviteCode) { showLoginError('Inserisci il codice invito ricevuto dalla responsabile'); return; }
-
-  const btn = document.getElementById('btn-register');
-  btn.disabled = true;
-  btn.textContent = 'Verifica codice...';
-  isRegistering = true;
-
-  try {
-    // Cerca il responsabile con questo codice invito
-    let adminId = null;
-    const adminSnap = await db.collection('users')
-      .where('codiceInvito', '==', inviteCode)
-      .get();
-
-    if (!adminSnap.empty) {
-      adminId = adminSnap.docs[0].id;
-    }
-
-    if (!adminId) {
-      btn.disabled = false;
-      btn.textContent = 'Crea account';
-      isRegistering = false;
-      showLoginError('Codice invito non valido. Controlla con la tua responsabile.');
-      return;
-    }
-    btn.textContent = 'Creazione account...';
-
-    // Crea account Firebase Auth
-    const cred = await auth.createUserWithEmailAndPassword(email, pw);
-    const uid = cred.user.uid;
-
-    btn.textContent = 'Salvataggio profilo...';
-
-    // Controlla se esiste già un documento pre-registrato con questa email
-    const preSnap = await db.collection('users')
-      .where('email', '==', email)
-      .where('adminId', '==', adminId)
-      .get();
-
-    if (!preSnap.empty) {
-      const preDoc = preSnap.docs[0];
-      if (preDoc.id !== uid) {
-        await db.collection('users').doc(preDoc.id).delete();
-      }
-    }
-
-    // Crea documento definitivo
-    await db.collection('users').doc(uid).set({
-      nome,
-      cognome,
-      email,
-      ruolo: qualifica || 'Collaboratore',
-      ruolo_app: 'worker',
-      adminId: adminId,
-      attiva: true,
-      preRegistrato: false,
-      createdAt: firebase.firestore.FieldValue.serverTimestamp()
-    });
-
-    // Documento salvato — avvia app manualmente
-    isRegistering = false;
-    currentUser = cred.user;
-    const savedSnap = await db.collection('users').doc(uid).get();
-    currentUserData = savedSnap.data();
-    initApp();
-
-  } catch(e) {
-    isRegistering = false;
-    btn.disabled = false;
-    btn.textContent = 'Crea account';
-    if (e.code === 'auth/email-already-in-use') { showLoginError('Email già registrata'); return; }
-    if (e.code === 'auth/invalid-email') { showLoginError('Email non valida'); return; }
-    if (e.code === 'auth/weak-password') { showLoginError('Password troppo corta (min. 6 caratteri)'); return; }
-    showLoginError('Errore: ' + e.message);
-  }
-}
-
+// ── AUTH ──
 auth.onAuthStateChanged(async (user) => {
+  if (isRegistering) return;
   if (user) {
     currentUser = user;
     const snap = await db.collection('users').doc(user.uid).get();
@@ -1479,7 +505,7 @@ auth.onAuthStateChanged(async (user) => {
       currentUserData = snap.data();
       initApp();
     } else {
-      showToast("Utente non configurato. Contatta l'amministratore.", "error");
+      showToast('Profilo non trovato. Riprova.', 'error');
       auth.signOut();
     }
   } else {
@@ -1488,42 +514,139 @@ auth.onAuthStateChanged(async (user) => {
   }
 });
 
+// ── TAB SWITCH ──
+function switchTab(tab) {
+  const isLogin = tab === 'login';
+  document.getElementById('form-login').style.display = isLogin ? 'block' : 'none';
+  document.getElementById('form-register').style.display = isLogin ? 'none' : 'block';
+  document.getElementById('login-error').style.display = 'none';
+  document.getElementById('tab-login').className = isLogin ? 'active' : 'inactive';
+  document.getElementById('tab-register').className = isLogin ? 'inactive' : 'active';
+}
+
+// ── LOGIN ──
 async function doLogin() {
   const email = document.getElementById('login-email').value.trim();
   const pw = document.getElementById('login-password').value;
   const btn = document.getElementById('btn-login');
-  const err = document.getElementById('login-error');
   if (!email || !pw) { showLoginError('Inserisci email e password'); return; }
-  btn.disabled = true;
-  btn.textContent = 'Accesso in corso...';
-  err.style.display = 'none';
+  btn.disabled = true; btn.textContent = 'Accesso in corso...';
+  document.getElementById('login-error').style.display = 'none';
   try {
     await auth.signInWithEmailAndPassword(email, pw);
-  } catch (e) {
+  } catch(e) {
     showLoginError('Email o password non corretti');
-    btn.disabled = false;
-    btn.textContent = 'Accedi';
+    btn.disabled = false; btn.textContent = 'Accedi';
+  }
+}
+
+// ── REGISTRAZIONE ──
+async function doRegister() {
+  const nome = document.getElementById('reg-nome').value.trim();
+  const cognome = document.getElementById('reg-cognome').value.trim();
+  const email = document.getElementById('reg-email').value.trim();
+  const pw = document.getElementById('reg-password').value.trim();
+  const codice = document.getElementById('reg-codice').value.trim().toUpperCase();
+
+  document.getElementById('login-error').style.display = 'none';
+
+  if (!nome || !cognome || !email || !pw) { showLoginError('Compila tutti i campi obbligatori'); return; }
+  if (pw.length < 6) { showLoginError('La password deve essere di almeno 6 caratteri'); return; }
+  if (!codice) { showLoginError('Inserisci il codice invito'); return; }
+
+  const btn = document.getElementById('btn-register');
+  btn.disabled = true;
+  btn.textContent = 'Verifica in corso...';
+  isRegistering = true;
+
+  try {
+    // Step 1: verifica codice invito cercando tra tutti gli admin
+    const allSnap = await db.collection('users').get();
+    let adminId = null;
+    let preDocId = null;
+    let preDocData = null;
+
+    allSnap.forEach(doc => {
+      const d = doc.data();
+      // Trova admin con questo codice invito
+      if (d.ruolo_app === 'admin' && d.codiceInvito === codice) {
+        adminId = doc.id;
+      }
+      // Trova doc pre-registrato con questa email
+      if (d.preRegistrato === true && d.email === email) {
+        preDocId = doc.id;
+        preDocData = d;
+      }
+    });
+
+    if (!adminId) {
+      isRegistering = false;
+      btn.disabled = false; btn.textContent = 'Crea account';
+      showLoginError('Codice invito non valido. Controlla con la tua responsabile.');
+      return;
+    }
+
+    if (!preDocId) {
+      isRegistering = false;
+      btn.disabled = false; btn.textContent = 'Crea account';
+      showLoginError('Email non trovata. Chiedi alla responsabile di aggiungerti prima.');
+      return;
+    }
+
+    // Verifica che il doc pre-registrato appartenga a questo admin
+    if (preDocData.adminId !== adminId) {
+      isRegistering = false;
+      btn.disabled = false; btn.textContent = 'Crea account';
+      showLoginError('Email o codice invito non validi.');
+      return;
+    }
+
+    btn.textContent = 'Creazione account...';
+    const cred = await auth.createUserWithEmailAndPassword(email, pw);
+    const uid = cred.user.uid;
+
+    btn.textContent = 'Salvataggio profilo...';
+    await db.collection('users').doc(uid).set({
+      nome, cognome, email,
+      ruolo: preDocData.ruolo || 'Collaboratore',
+      ruolo_app: 'worker',
+      adminId: adminId,
+      attiva: true,
+      preRegistrato: false,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+
+    // Elimina doc pre-registrato
+    await db.collection('users').doc(preDocId).delete();
+
+    isRegistering = false;
+    currentUser = cred.user;
+    const savedSnap = await db.collection('users').doc(uid).get();
+    currentUserData = savedSnap.data();
+    initApp();
+
+  } catch(e) {
+    isRegistering = false;
+    btn.disabled = false; btn.textContent = 'Crea account';
+    if (e.code === 'auth/email-already-in-use') { showLoginError('Email gia registrata. Usa Accedi.'); return; }
+    if (e.code === 'auth/invalid-email') { showLoginError('Email non valida'); return; }
+    if (e.code === 'auth/weak-password') { showLoginError('Password troppo corta (min. 6 caratteri)'); return; }
+    showLoginError('Errore: ' + e.message);
   }
 }
 
 function showLoginError(msg) {
   const el = document.getElementById('login-error');
-  el.textContent = msg;
-  el.style.display = 'block';
+  el.textContent = msg; el.style.display = 'block';
 }
 
-function doLogout() {
-  auth.signOut();
-}
+function doLogout() { auth.signOut(); }
 
-// ─────────────────────────────────────────────────────
-// INIT APP
-// ─────────────────────────────────────────────────────
+// ── INIT ──
 function initApp() {
   document.getElementById('login-screen').style.display = 'none';
   document.getElementById('app').style.display = 'block';
-  document.getElementById('nav-username').textContent = currentUserData.nome || currentUserData.email;
-
+  document.getElementById('nav-username').textContent = currentUserData.nome || '';
   if (currentUserData.ruolo_app === 'admin') {
     document.getElementById('sidebar-admin').style.display = '';
     loadDashboard();
@@ -1537,109 +660,56 @@ function initApp() {
   }
 }
 
-// ─────────────────────────────────────────────────────
-// NAVIGAZIONE
-// ─────────────────────────────────────────────────────
+// ── NAVIGAZIONE ──
 function showPage(pageId) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-  document.querySelectorAll('.sidebar-item').forEach(b => {
-    b.classList.toggle('active', b.dataset.page === pageId);
-  });
+  document.querySelectorAll('.sidebar-item').forEach(b => b.classList.toggle('active', b.dataset.page === pageId));
   document.getElementById('page-' + pageId).classList.add('active');
 }
 
-function switchScheduleTab(type, btn) {
-  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
-  const periodEl = document.getElementById('schedule-week');
-  const label = document.getElementById('schedule-period-label');
-  if (type === 'mensile') {
-    periodEl.type = 'month';
-    label.textContent = 'Mese';
-  } else {
-    periodEl.type = 'week';
-    label.textContent = 'Settimana';
-  }
-  periodEl.value = '';
-  document.getElementById('schedule-form-area').innerHTML = `
-    <div class="empty-state">
-      <div class="empty-icon">📆</div>
-      <h3>Seleziona collaboratore e periodo</h3>
-      <p>Poi potrai inserire le ore per ogni giorno</p>
-    </div>`;
-}
-
-// ─────────────────────────────────────────────────────
-// DASHBOARD
-// ─────────────────────────────────────────────────────
+// ── DASHBOARD ──
 async function loadDashboard() {
-  // Stats workers
-  const workersSnap = await db.collection('users').where('adminId','==',currentUser.uid).where('attiva','==',true).get();
+  const workersSnap = await db.collection('users').where('adminId','==',currentUser.uid).where('preRegistrato','==',false).get();
   document.getElementById('stat-workers').textContent = workersSnap.size;
-
-  // Ore mese corrente
   const now = new Date();
-  const meseStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
-  const tsSnap = await db.collection('timesheets')
-    .where('mese','==',meseStr).get();
-
-  let oreReq = 0, oreConf = 0, pending = 0;
-  tsSnap.forEach(d => {
-    const t = d.data();
-    oreReq += t.oreRichieste || 0;
-    if (t.confermato) oreConf += t.oreEffettive || t.oreRichieste || 0;
-    else pending++;
-  });
-
-  document.getElementById('stat-ore-mese').textContent = oreReq.toFixed(1) + 'h';
-  document.getElementById('stat-ore-conf').textContent = oreConf.toFixed(1) + 'h';
+  const meseStr = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0');
+  const tsSnap = await db.collection('timesheets').where('mese','==',meseStr).get();
+  let oreReq=0, oreConf=0, pending=0;
+  tsSnap.forEach(d => { const t=d.data(); oreReq+=t.oreRichieste||0; if(t.confermato){oreConf+=t.oreEffettive??t.oreRichieste??0;}else{pending++;} });
+  document.getElementById('stat-ore-mese').textContent = oreReq.toFixed(1)+'h';
+  document.getElementById('stat-ore-conf').textContent = oreConf.toFixed(1)+'h';
   document.getElementById('stat-pending').textContent = pending;
-
-  // Stato settimana
   const listEl = document.getElementById('dashboard-list');
   if (workersSnap.empty) {
-    listEl.innerHTML = `<div class="empty-state"><div class="empty-icon">👥</div><h3>Nessuna collaboratore</h3><p>Aggiungi collaboratori dalla sezione apposita</p></div>`;
+    listEl.innerHTML = '<div class="empty-state"><div class="empty-icon">👥</div><h3>Nessun collaboratore</h3><p>Aggiungi collaboratori dalla sezione apposita</p></div>';
     return;
   }
-
   const weekStr = getCurrentWeekStr();
   let html = '<div style="display:flex;flex-direction:column;gap:10px;">';
   for (const wDoc of workersSnap.docs) {
     const w = wDoc.data();
-    const wSnap = await db.collection('timesheets')
-      .where('workerId','==',wDoc.id)
-      .where('settimana','==',weekStr).get();
-    let tot = 0, conf = 0;
+    const wSnap = await db.collection('timesheets').where('workerId','==',wDoc.id).where('settimana','==',weekStr).get();
+    let tot=0, conf=0;
     wSnap.forEach(d => { tot++; if(d.data().confermato) conf++; });
-    const initials = (w.nome[0]||'') + (w.cognome[0]||'');
-    html += `
-    <div style="display:flex;align-items:center;gap:12px;padding:12px 14px;background:var(--cream);border-radius:var(--radius-sm);">
+    const initials = (w.nome?.[0]||'')+(w.cognome?.[0]||'');
+    html += `<div style="display:flex;align-items:center;gap:12px;padding:12px 14px;background:var(--cream);border-radius:var(--radius-sm);">
       <div class="avatar">${initials}</div>
-      <div style="flex:1">
-        <div style="font-weight:500;font-size:14px">${w.nome} ${w.cognome}</div>
-        <div style="font-size:12px;color:var(--text-muted)">${w.ruolo||''}</div>
-      </div>
-      <span class="badge ${conf===tot && tot>0?'badge-green':tot===0?'badge-gray':'badge-amber'}">
-        ${tot===0?'Nessun orario':''+conf+'/'+tot+' conferme'}
-      </span>
+      <div style="flex:1"><div style="font-weight:500;font-size:14px">${w.nome} ${w.cognome}</div><div style="font-size:12px;color:var(--text-muted)">${w.ruolo||''}</div></div>
+      <span class="badge ${conf===tot&&tot>0?'badge-green':tot===0?'badge-gray':'badge-amber'}">${tot===0?'Nessun orario':conf+'/'+tot+' conferme'}</span>
     </div>`;
   }
   html += '</div>';
   listEl.innerHTML = html;
 }
 
-// ─────────────────────────────────────────────────────
-// COLLABORATRICI
-// ─────────────────────────────────────────────────────
+// ── COLLABORATORI ──
 async function loadWorkersTable() {
-  const snap = await db.collection('users').where('adminId','==',currentUser.uid).where('attiva','==',true).orderBy('cognome').get();
-  allWorkers = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  const snap = await db.collection('users').where('adminId','==',currentUser.uid).get();
+  allWorkers = snap.docs.map(d => ({id:d.id,...d.data()})).sort((a,b)=>a.cognome.localeCompare(b.cognome));
   renderWorkers(allWorkers);
-
-  // Popola select invia orari
   const sel = document.getElementById('schedule-worker-select');
   sel.innerHTML = '<option value="">— Seleziona —</option>';
-  allWorkers.forEach(w => {
+  allWorkers.filter(w=>!w.preRegistrato).forEach(w => {
     sel.innerHTML += `<option value="${w.id}">${w.nome} ${w.cognome}</option>`;
   });
 }
@@ -1647,38 +717,27 @@ async function loadWorkersTable() {
 function renderWorkers(workers) {
   const tbody = document.getElementById('workers-tbody');
   if (!workers.length) {
-    tbody.innerHTML = '<tr><td colspan="5"><div class="empty-state" style="padding:40px"><div class="empty-icon">👥</div><h3>Nessuna collaboratore</h3><p>Aggiungi la prima collaboratore</p></div></td></tr>';
+    tbody.innerHTML = '<tr><td colspan="5"><div class="empty-state" style="padding:40px"><div class="empty-icon">👥</div><h3>Nessun collaboratore</h3></div></td></tr>';
     return;
   }
   tbody.innerHTML = workers.map(w => {
-    const initials = (w.nome?.[0]||'') + (w.cognome?.[0]||'');
+    const initials = (w.nome?.[0]||'')+(w.cognome?.[0]||'');
     const isPre = w.preRegistrato === true;
-    return `
-    <tr>
-      <td>
-        <div class="worker-info">
-          <div class="avatar avatar-sm">${initials}</div>
-          <div>
-            <div class="worker-name">${w.nome} ${w.cognome}</div>
-            ${isPre ? '<div style="font-size:11px;color:var(--amber)">In attesa di registrazione</div>' : ''}
-          </div>
-        </div>
-      </td>
+    return `<tr>
+      <td><div class="worker-info"><div class="avatar avatar-sm">${initials}</div><div>
+        <div class="worker-name">${w.nome} ${w.cognome}</div>
+        ${isPre?'<div style="font-size:11px;color:var(--amber)">In attesa di registrazione</div>':''}
+      </div></div></td>
       <td>${w.email}</td>
       <td>${w.ruolo||'—'}</td>
-      <td><span class="badge ${isPre ? 'badge-amber' : 'badge-green'}">${isPre ? '⏳ In attesa' : '✓ Attivo'}</span></td>
-      <td style="text-align:right">
-        <button class="btn-icon danger" onclick="deleteWorker('${w.id}','${w.nome} ${w.cognome}')" title="Elimina">🗑</button>
-      </td>
+      <td><span class="badge ${isPre?'badge-amber':'badge-green'}">${isPre?'⏳ In attesa':'✓ Attivo'}</span></td>
+      <td style="text-align:right"><button class="btn-icon danger" onclick="deleteWorker('${w.id}','${w.nome} ${w.cognome}')" title="Elimina">🗑</button></td>
     </tr>`;
   }).join('');
 }
 
 function filterWorkers(q) {
-  const filtered = allWorkers.filter(w =>
-    (w.nome+' '+w.cognome+w.email).toLowerCase().includes(q.toLowerCase())
-  );
-  renderWorkers(filtered);
+  renderWorkers(allWorkers.filter(w => (w.nome+' '+w.cognome+w.email).toLowerCase().includes(q.toLowerCase())));
 }
 
 async function addWorker() {
@@ -1686,25 +745,11 @@ async function addWorker() {
   const cognome = document.getElementById('worker-cognome').value.trim();
   const email = document.getElementById('worker-email').value.trim();
   const ruolo = document.getElementById('worker-ruolo').value.trim();
-
   if (!nome || !cognome || !email) { showToast('Compila nome, cognome ed email', 'error'); return; }
-
   try {
-    // Controlla se esiste già un documento con questa email
-    const existing = await db.collection('users')
-      .where('email', '==', email)
-      .where('adminId', '==', currentUser.uid)
-      .get();
-
-    if (!existing.empty) {
-      showToast('Esiste già un collaboratore con questa email', 'error');
-      return;
-    }
-
-    // Crea documento anagrafica in Firestore (senza account Firebase Auth)
-    // Quando il collaboratore si registra con il codice invito, il doc viene aggiornato
-    const docRef = db.collection('users').doc();
-    await docRef.set({
+    const existing = await db.collection('users').where('email','==',email).where('adminId','==',currentUser.uid).get();
+    if (!existing.empty) { showToast('Email gia presente', 'error'); return; }
+    await db.collection('users').add({
       nome, cognome, email,
       ruolo: ruolo || 'Collaboratore',
       ruolo_app: 'worker',
@@ -1713,170 +758,117 @@ async function addWorker() {
       preRegistrato: true,
       createdAt: firebase.firestore.FieldValue.serverTimestamp()
     });
-
-    showToast(`${nome} ${cognome} aggiunto! Può ora registrarsi con il codice invito. ✓`, 'success');
+    showToast(nome+' '+cognome+' aggiunto! Ora puo registrarsi.', 'success');
     closeModal('modal-add-worker');
-    clearAddWorkerForm();
+    document.getElementById('worker-nome').value='';
+    document.getElementById('worker-cognome').value='';
+    document.getElementById('worker-email').value='';
+    document.getElementById('worker-ruolo').value='';
     loadWorkersTable();
     loadDashboard();
   } catch(e) {
-    console.error(e);
-    showToast('Errore: ' + e.message, 'error');
+    showToast('Errore: '+e.message, 'error');
   }
-}
-
-function clearAddWorkerForm() {
-  ['worker-nome','worker-cognome','worker-email','worker-ruolo'].forEach(id => {
-    document.getElementById(id).value = '';
-  });
 }
 
 async function deleteWorker(uid, name) {
-  if (!confirm(`Sei sicuro di voler rimuovere definitivamente ${name}? Questa azione non può essere annullata.`)) return;
+  if (!confirm('Sei sicuro di voler eliminare definitivamente '+name+'?')) return;
   try {
-    // Elimina documento da Firestore
     await db.collection('users').doc(uid).delete();
-
-    // Disabilita account Firebase Auth tramite REST API (se ha un account)
-    try {
-      const apiKey = firebaseConfig.apiKey;
-      const token = await auth.currentUser.getIdToken();
-      await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:delete?key=${apiKey}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ idToken: token })
-      });
-    } catch(authErr) {
-      // Se non ha ancora un account Auth, ignora errore
-      console.warn('Nessun account Auth da eliminare:', authErr);
-    }
-
-    showToast(`${name} eliminato definitivamente`, 'success');
+    showToast(name+' eliminato', 'success');
     loadWorkersTable();
     loadDashboard();
   } catch(e) {
-    console.error(e);
-    showToast("Errore durante l'eliminazione", "error");
+    showToast('Errore durante la rimozione', 'error');
   }
 }
 
-// ─────────────────────────────────────────────────────
-// INVIA ORARI
-// ─────────────────────────────────────────────────────
+// ── INVIA ORARI ──
 function initSchedulePage() {
-  const today = new Date();
-  const year = today.getFullYear();
-  const week = getWeekNumber(today);
-  document.getElementById('schedule-week').value = `${year}-W${String(week).padStart(2,'0')}`;
+  const now = new Date();
+  const w = getWeekNumber(now);
+  document.getElementById('schedule-period').value = now.getFullYear()+'-W'+String(w).padStart(2,'0');
 }
 
-function loadScheduleWorker() { renderScheduleForm(); }
-function loadSchedulePeriod() { renderScheduleForm(); }
+function switchScheduleTab(type, btn) {
+  scheduleType = type;
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  const inp = document.getElementById('schedule-period');
+  inp.type = type === 'month' ? 'month' : 'week';
+  document.getElementById('schedule-period-label').textContent = type === 'month' ? 'Mese' : 'Settimana';
+  inp.value = '';
+  document.getElementById('schedule-form-area').innerHTML = '<div class="empty-state"><div class="empty-icon">📆</div><h3>Seleziona collaboratore e periodo</h3></div>';
+}
 
 async function renderScheduleForm() {
   const workerId = document.getElementById('schedule-worker-select').value;
-  const period = document.getElementById('schedule-week').value;
+  const period = document.getElementById('schedule-period').value;
   const area = document.getElementById('schedule-form-area');
-
   if (!workerId || !period) {
-    area.innerHTML = `<div class="empty-state"><div class="empty-icon">📆</div><h3>Seleziona collaboratore e periodo</h3><p>Poi potrai inserire le ore per ogni giorno</p></div>`;
+    area.innerHTML = '<div class="empty-state"><div class="empty-icon">📆</div><h3>Seleziona collaboratore e periodo</h3></div>';
     return;
   }
-
-  const isWeek = document.getElementById('schedule-week').type === 'week';
-  const days = isWeek ? getDaysOfWeek(period) : getDaysOfMonth(period);
-
-  // Carica schedule esistente
-  const schedId = `${workerId}_${period.replace(/\W/g,'_')}`;
+  const days = scheduleType === 'month' ? getDaysOfMonth(period) : getDaysOfWeek(period);
+  const schedId = workerId+'_'+period.replace(/\W/g,'_');
   const schedDoc = await db.collection('schedules').doc(schedId).get();
-  const existing = schedDoc.exists ? schedDoc.data().giorni || {} : {};
-
-  let html = `<div class="ore-grid">`;
-  days.forEach((day, i) => {
+  const existing = schedDoc.exists ? schedDoc.data().giorni||{} : {};
+  let html = '<div class="ore-grid">';
+  days.forEach(day => {
     const dayKey = day.toISOString().split('T')[0];
     const dayName = GIORNI[day.getDay()===0?6:day.getDay()-1];
-    const isWeekend = day.getDay() === 0 || day.getDay() === 6;
-    const val = existing[dayKey] || '';
-    html += `
-    <div class="ore-day ${isWeekend?'festa':''}">
-      <div class="ore-day-label">
-        ${dayName}
-        <span class="day-num">${day.getDate()}/${String(day.getMonth()+1).padStart(2,'0')}</span>
-        ${isWeekend?'<span class="badge badge-gray" style="font-size:10px;padding:1px 6px">Weekend</span>':''}
-      </div>
-      <input class="ore-input" type="number" min="0" max="24" step="0.5"
-        value="${val}" placeholder="—" data-day="${dayKey}" ${isWeekend?'disabled':''}>
+    const isWeekend = day.getDay()===0||day.getDay()===6;
+    const val = existing[dayKey]||'';
+    html += `<div class="ore-day ${isWeekend?'opacity-50':''}">
+      <div class="ore-day-label">${dayName} <span class="day-num">${day.getDate()}/${String(day.getMonth()+1).padStart(2,'0')}</span>
+      ${isWeekend?'<span class="badge badge-gray" style="font-size:10px;padding:1px 6px">Weekend</span>':''}</div>
+      <input class="ore-input" type="number" min="0" max="24" step="0.5" value="${val}" placeholder="—" data-day="${dayKey}" ${isWeekend?'disabled':''}>
     </div>`;
   });
-  html += `</div>
-  <div style="margin-top:20px;display:flex;gap:10px;justify-content:flex-end;">
-    <button class="btn btn-outline" onclick="clearScheduleForm()">Cancella</button>
-    <button class="btn btn-accent" onclick="saveSchedule('${workerId}','${period}','${isWeek?'week':'month'}')">📤 Invia orari</button>
+  html += `</div><div style="margin-top:20px;display:flex;gap:10px;justify-content:flex-end;">
+    <button class="btn btn-outline" onclick="document.querySelectorAll('#schedule-form-area .ore-input').forEach(i=>i.value='')">Cancella</button>
+    <button class="btn btn-accent" onclick="saveSchedule('${workerId}','${period}')">📤 Invia orari</button>
   </div>`;
   area.innerHTML = html;
 }
 
-function clearScheduleForm() {
-  document.querySelectorAll('#schedule-form-area .ore-input').forEach(i => i.value = '');
-}
-
-async function saveSchedule(workerId, period, type) {
+async function saveSchedule(workerId, period) {
   const giorni = {};
   let totOre = 0;
   document.querySelectorAll('#schedule-form-area .ore-input:not([disabled])').forEach(inp => {
-    if (inp.value) {
-      giorni[inp.dataset.day] = parseFloat(inp.value);
-      totOre += parseFloat(inp.value);
-    }
+    if (inp.value) { giorni[inp.dataset.day]=parseFloat(inp.value); totOre+=parseFloat(inp.value); }
   });
-
-  if (!Object.keys(giorni).length) { showToast("Inserisci almeno un'ora", "error"); return; }
-
-  const schedId = `${workerId}_${period.replace(/\W/g,'_')}`;
+  if (!Object.keys(giorni).length) { showToast('Inserisci almeno un ora', 'error'); return; }
+  const schedId = workerId+'_'+period.replace(/\W/g,'_');
   try {
     await db.collection('schedules').doc(schedId).set({
-      workerId, period, type,
-      giorni,
-      totOre,
+      workerId, period, type: scheduleType, giorni, totOre,
       inviatoDa: currentUser.uid,
       inviatoAt: firebase.firestore.FieldValue.serverTimestamp()
     });
-
-    // Crea/aggiorna timesheets per ogni giorno
     const batch = db.batch();
     for (const [day, ore] of Object.entries(giorni)) {
-      const mese = day.substring(0, 7);
-      const tsId = `${workerId}_${day}`;
+      const mese = day.substring(0,7);
+      const tsId = workerId+'_'+day;
       batch.set(db.collection('timesheets').doc(tsId), {
-        workerId,
-        data: day,
-        mese,
-        settimana: period.startsWith(day.substring(0,4)) ? period : getWeekStrFromDate(new Date(day)),
-        oreRichieste: ore,
-        confermato: false,
-        giustificativo: null,
+        workerId, data: day, mese,
+        settimana: getWeekStrFromDate(new Date(day+'T12:00:00')),
+        oreRichieste: ore, confermato: false, giustificativo: null,
         updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-      }, { merge: true });
+      }, {merge:true});
     }
     await batch.commit();
-
-    // Notifica OneSignal
-    sendOneSignalNotification(workerId, 'Nuovi orari ricevuti', `Hai ricevuto gli orari per il periodo ${period}`);
-
     showToast('Orari inviati con successo! 📤', 'success');
     loadDashboard();
   } catch(e) {
-    console.error(e);
-    showToast('Errore durante il salvataggio', 'error');
+    showToast('Errore: '+e.message, 'error');
   }
 }
 
-// ─────────────────────────────────────────────────────
-// RIEPILOGO + EXPORT EXCEL
-// ─────────────────────────────────────────────────────
+// ── RIEPILOGO ──
 function initRiepilogoPage() {
   const now = new Date();
-  document.getElementById('riepilogo-month').value = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+  document.getElementById('riepilogo-month').value = now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0');
 }
 
 async function loadRiepilogo() {
@@ -1884,39 +876,25 @@ async function loadRiepilogo() {
   if (!mese) return;
   const content = document.getElementById('riepilogo-content');
   content.innerHTML = '<div class="loading-spinner"></div>';
-
-  const workers = allWorkers.filter(w => w.ruolo_app !== 'worker_inactive');
-  if (!workers.length) {
-    content.innerHTML = '<div class="empty-state"><div class="empty-icon">👥</div><h3>Nessuna collaboratore</h3></div>';
-    return;
-  }
-
+  const workers = allWorkers.filter(w=>!w.preRegistrato);
+  if (!workers.length) { content.innerHTML='<div class="empty-state"><div class="empty-icon">👥</div><h3>Nessun collaboratore</h3></div>'; return; }
   const tsSnap = await db.collection('timesheets').where('mese','==',mese).get();
   const tsMap = {};
-  tsSnap.forEach(d => {
-    const t = d.data();
-    if (!tsMap[t.workerId]) tsMap[t.workerId] = [];
-    tsMap[t.workerId].push(t);
-  });
-
-  let html = '<div style="overflow-x:auto"><table style="min-width:600px">';
-  html += '<thead><tr><th style="min-width:160px">Collaboratore</th><th>Ore previste</th><th>Ore effettive</th><th>Differenza</th><th>Pendenti</th></tr></thead><tbody>';
-
+  tsSnap.forEach(d => { const t=d.data(); if(!tsMap[t.workerId]) tsMap[t.workerId]=[]; tsMap[t.workerId].push(t); });
+  let html = '<div style="overflow-x:auto"><table style="min-width:600px"><thead><tr><th>Collaboratore</th><th>Ore previste</th><th>Ore effettive</th><th>Differenza</th><th>Pendenti</th></tr></thead><tbody>';
   workers.forEach(w => {
-    const tsList = tsMap[w.id] || [];
-    const totPrev = tsList.reduce((s,t) => s + (t.oreRichieste||0), 0);
-    const totEff = tsList.filter(t=>t.confermato).reduce((s,t) => s + (t.oreEffettive??t.oreRichieste??0), 0);
+    const tsList = tsMap[w.id]||[];
+    const totPrev = tsList.reduce((s,t)=>s+(t.oreRichieste||0),0);
+    const totEff = tsList.filter(t=>t.confermato).reduce((s,t)=>s+(t.oreEffettive??t.oreRichieste??0),0);
     const pendenti = tsList.filter(t=>!t.confermato).length;
-    const diff = totEff - totPrev;
-    const diffClass = diff > 0 ? 'pos' : diff < 0 ? 'neg' : 'zero';
-    const initials = (w.nome?.[0]||'') + (w.cognome?.[0]||'');
-    html += `
-    <tr>
+    const diff = totEff-totPrev;
+    const dc = diff>0?'pos':diff<0?'neg':'zero';
+    const initials=(w.nome?.[0]||'')+(w.cognome?.[0]||'');
+    html += `<tr>
       <td><div class="worker-info"><div class="avatar avatar-sm">${initials}</div><div class="worker-name">${w.nome} ${w.cognome}</div></div></td>
-      <td>${totPrev.toFixed(1)}h</td>
-      <td>${totEff.toFixed(1)}h</td>
-      <td><span class="ore-diff ${diffClass}">${diff>=0?'+':''}${diff.toFixed(1)}h</span></td>
-      <td>${pendenti>0?`<span class="badge badge-amber">${pendenti} giorni</span>`:'<span class="badge badge-green">Tutti confermati</span>'}</td>
+      <td>${totPrev.toFixed(1)}h</td><td>${totEff.toFixed(1)}h</td>
+      <td><span class="ore-diff ${dc}">${diff>=0?'+':''}${diff.toFixed(1)}h</span></td>
+      <td>${pendenti>0?'<span class="badge badge-amber">'+pendenti+' giorni</span>':'<span class="badge badge-green">Tutti confermati</span>'}</td>
     </tr>`;
   });
   html += '</tbody></table></div>';
@@ -1926,201 +904,120 @@ async function loadRiepilogo() {
 async function exportExcel() {
   const mese = document.getElementById('riepilogo-month').value;
   if (!mese) { showToast('Seleziona prima un mese', 'error'); return; }
-
   const tsSnap = await db.collection('timesheets').where('mese','==',mese).get();
   const tsMap = {};
-  tsSnap.forEach(d => {
-    const t = d.data();
-    if (!tsMap[t.workerId]) tsMap[t.workerId] = [];
-    tsMap[t.workerId].push(t);
-  });
-
-  const workers = allWorkers;
-  const rows = [['Nome', 'Cognome', 'Mese', 'Ore Previste', 'Ore Effettive', 'Differenza', 'Giorni Pendenti']];
-
-  workers.forEach(w => {
-    const tsList = tsMap[w.id] || [];
-    const totPrev = tsList.reduce((s,t) => s+(t.oreRichieste||0), 0);
-    const totEff = tsList.filter(t=>t.confermato).reduce((s,t) => s+(t.oreEffettive??t.oreRichieste??0), 0);
+  tsSnap.forEach(d => { const t=d.data(); if(!tsMap[t.workerId]) tsMap[t.workerId]=[]; tsMap[t.workerId].push(t); });
+  const rows = [['Nome','Cognome','Mese','Ore Previste','Ore Effettive','Differenza','Giorni Pendenti']];
+  allWorkers.filter(w=>!w.preRegistrato).forEach(w => {
+    const tsList = tsMap[w.id]||[];
+    const totPrev = tsList.reduce((s,t)=>s+(t.oreRichieste||0),0);
+    const totEff = tsList.filter(t=>t.confermato).reduce((s,t)=>s+(t.oreEffettive??t.oreRichieste??0),0);
     const pendenti = tsList.filter(t=>!t.confermato).length;
-    rows.push([w.nome, w.cognome, mese, totPrev.toFixed(1), totEff.toFixed(1), (totEff-totPrev).toFixed(1), pendenti]);
+    rows.push([w.nome,w.cognome,mese,totPrev.toFixed(1),totEff.toFixed(1),(totEff-totPrev).toFixed(1),pendenti]);
   });
-
-  // Dettaglio giornaliero
-  rows.push([]);
-  rows.push(['DETTAGLIO GIORNALIERO']);
-  rows.push(['Collaboratore', 'Data', 'Ore Previste', 'Ore Effettive', 'Confermato', 'Tipo giustificativo', 'Protocollo malattia', 'Note']);
-  workers.forEach(w => {
-    const tsList = (tsMap[w.id]||[]).sort((a,b)=>a.data.localeCompare(b.data));
-    tsList.forEach(t => {
-      rows.push([
-        `${w.nome} ${w.cognome}`,
-        t.data,
-        t.oreRichieste?.toFixed(1)||'',
-        t.oreEffettive?.toFixed(1)||'',
-        t.confermato?'Sì':'No',
-        t.giustificativo?.tipo||'',
-        t.giustificativo?.protocollo||'',
-        t.giustificativo?.note||''
-      ]);
-    });
+  rows.push([],['DETTAGLIO GIORNALIERO'],['Collaboratore','Data','Ore Previste','Ore Effettive','Confermato','Tipo giustificativo','Protocollo malattia','Note']);
+  allWorkers.filter(w=>!w.preRegistrato).forEach(w => {
+    const tsList=(tsMap[w.id]||[]).sort((a,b)=>a.data.localeCompare(b.data));
+    tsList.forEach(t => rows.push([w.nome+' '+w.cognome,t.data,t.oreRichieste?.toFixed(1)||'',t.oreEffettive?.toFixed(1)||'',t.confermato?'Si':'No',t.giustificativo?.tipo||'',t.giustificativo?.protocollo||'',t.giustificativo?.note||'']));
   });
-
   const ws = XLSX.utils.aoa_to_sheet(rows);
   const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, `Riepilogo ${mese}`);
-  XLSX.writeFile(wb, `Ore OK_${mese}.xlsx`);
+  XLSX.utils.book_append_sheet(wb, ws, 'Riepilogo '+mese);
+  XLSX.writeFile(wb, 'OreOK_'+mese+'.xlsx');
   showToast('File Excel scaricato! ⬇', 'success');
 }
 
-// ─────────────────────────────────────────────────────
-// WORKER HOME
-// ─────────────────────────────────────────────────────
+// ── WORKER HOME ──
 function loadWorkerHome() {
   const d = currentUserData;
-  const initials = (d.nome?.[0]||'') + (d.cognome?.[0]||'');
+  const initials = (d.nome?.[0]||'')+(d.cognome?.[0]||'');
   document.getElementById('worker-avatar-big').textContent = initials;
-  document.getElementById('worker-fullname').textContent = `${d.nome} ${d.cognome}`;
+  document.getElementById('worker-fullname').textContent = d.nome+' '+d.cognome;
   workerWeekOffset = 0;
   loadWorkerWeek();
 }
 
 async function loadWorkerWeek() {
-  const weekDate = getDateWithWeekOffset(workerWeekOffset);
+  const weekDate = new Date();
+  weekDate.setDate(weekDate.getDate()+workerWeekOffset*7);
   const weekStr = getWeekStrFromDate(weekDate);
   const days = getDaysOfWeek(weekStr);
-  const startDay = days[0];
-  const endDay = days[days.length-1];
-  const fmt = d => `${d.getDate()}/${d.getMonth()+1}`;
-  document.getElementById('worker-week-label').textContent = `${fmt(startDay)} — ${fmt(endDay)} ${endDay.getFullYear()}`;
-  document.getElementById('worker-subtitle').textContent = `Settimana in corso`;
-
+  const fmt = d => d.getDate()+'/'+(d.getMonth()+1);
+  document.getElementById('worker-week-label').textContent = fmt(days[0])+' — '+fmt(days[6])+' '+days[6].getFullYear();
   const listEl = document.getElementById('worker-days-list');
   listEl.innerHTML = '<div class="loading-spinner"></div>';
-
-  const snaps = await Promise.all(
-    days.map(d => {
-      const dayKey = d.toISOString().split('T')[0];
-      return db.collection('timesheets').doc(`${currentUser.uid}_${dayKey}`).get();
-    })
-  );
-
-  const dayDocs = snaps.map((snap, i) => ({
-    day: days[i],
-    dayKey: days[i].toISOString().split('T')[0],
-    data: snap.exists ? snap.data() : null,
-    exists: snap.exists
+  const snaps = await Promise.all(days.map(d => {
+    const dayKey = d.toISOString().split('T')[0];
+    return db.collection('timesheets').doc(currentUser.uid+'_'+dayKey).get();
   }));
-
-  const pending = dayDocs.filter(d => d.exists && !d.data.confermato).length;
-  document.getElementById('worker-pending-info').textContent =
-    pending > 0 ? `${pending} giornate da confermare` : dayDocs.some(d=>d.exists) ? '✓ Tutto confermato' : '';
-
-  if (!dayDocs.some(d => d.exists)) {
-    listEl.innerHTML = `
-    <div class="empty-state">
-      <div class="empty-icon">📭</div>
-      <h3>Nessun orario ricevuto</h3>
-      <p>Non hai ancora ricevuto gli orari per questa settimana</p>
-    </div>`;
+  const dayDocs = snaps.map((snap,i) => ({day:days[i],dayKey:days[i].toISOString().split('T')[0],data:snap.exists?snap.data():null,exists:snap.exists}));
+  const pending = dayDocs.filter(d=>d.exists&&!d.data.confermato).length;
+  document.getElementById('worker-pending-info').textContent = pending>0?pending+' giornate da confermare':dayDocs.some(d=>d.exists)?'Tutto confermato':'';
+  if (!dayDocs.some(d=>d.exists)) {
+    listEl.innerHTML = '<div class="empty-state"><div class="empty-icon">📭</div><h3>Nessun orario ricevuto</h3><p>Non hai ancora ricevuto gli orari per questa settimana</p></div>';
     return;
   }
-
-  listEl.innerHTML = dayDocs.map(({day, dayKey, data, exists}) => {
+  listEl.innerHTML = dayDocs.map(({day,dayKey,data,exists}) => {
     const dayName = GIORNI[day.getDay()===0?6:day.getDay()-1];
-    const dateStr = `${dayName} ${day.getDate()}/${String(day.getMonth()+1).padStart(2,'0')}`;
-    if (!exists) {
-      return `<div class="day-card holiday">
-        <div><div class="day-card-date">${dateStr}</div><div class="day-card-hours">Nessun orario</div></div>
-        <span class="badge badge-gray">—</span>
-      </div>`;
-    }
+    const dateStr = dayName+' '+day.getDate()+'/'+(day.getMonth()+1);
+    if (!exists) return `<div class="day-card"><div><div class="day-card-date">${dateStr}</div><div class="day-card-hours">Nessun orario</div></div><span class="badge badge-gray">—</span></div>`;
     const confermato = data.confermato;
     const oreReq = data.oreRichieste;
     const oreEff = data.oreEffettive;
     return `<div class="day-card ${confermato?'confirmed':'pending'}">
       <div>
         <div class="day-card-date">${dateStr}</div>
-        <div class="day-card-hours">
-          Ore previste: <strong>${oreReq}h</strong>
-          ${confermato ? ` &nbsp;·&nbsp; Effettive: <strong>${oreEff??oreReq}h</strong>` : ''}
-          ${data.giustificativo?.tipo ? ` &nbsp;·&nbsp; <span style="color:var(--amber)">${data.giustificativo.tipo}</span>` : ''}
-        </div>
+        <div class="day-card-hours">Ore previste: <strong>${oreReq}h</strong>${confermato?' &nbsp;·&nbsp; Effettive: <strong>'+(oreEff??oreReq)+'h</strong>':''}${data.giustificativo?.tipo?' &nbsp;·&nbsp; <span style="color:var(--amber)">'+data.giustificativo.tipo+'</span>':''}</div>
       </div>
-      <div class="day-card-actions">
-        ${confermato
-          ? `<span class="badge badge-green">✓ Confermata</span>`
-          : `<button class="btn btn-accent btn-sm" onclick="openConferma('${dayKey}',${oreReq})">Conferma</button>`
-        }
-      </div>
+      <div>${confermato?'<span class="badge badge-green">✓ Confermata</span>':'<button class="btn btn-accent btn-sm" onclick="openConferma(\''+dayKey+'\','+oreReq+')">Conferma</button>'}</div>
     </div>`;
   }).join('');
 }
 
-function changeWorkerWeek(delta) {
-  workerWeekOffset += delta;
-  loadWorkerWeek();
+function changeWorkerWeek(delta) { workerWeekOffset+=delta; loadWorkerWeek(); }
+
+// ── CONFERMA ORE ──
+function checkVariazione() {
+  const oreEff = parseFloat(document.getElementById('conf-ore-effettive').value);
+  const oreReq = currentConfirmDay?.oreRichieste;
+  document.getElementById('giust-box').classList.toggle('open', !isNaN(oreEff) && oreEff !== oreReq);
 }
 
-// ─────────────────────────────────────────────────────
-// CONFERMA ORE (WORKER)
-// ─────────────────────────────────────────────────────
+function checkMalattia() {
+  document.getElementById('giust-protocollo-box').style.display = document.getElementById('giust-tipo').value === 'malattia' ? 'block' : 'none';
+}
+
 function openConferma(dayKey, oreRichieste) {
-  currentConfirmDay = { dayKey, oreRichieste };
-  const date = new Date(dayKey + 'T12:00:00');
+  currentConfirmDay = {dayKey, oreRichieste};
+  const date = new Date(dayKey+'T12:00:00');
   const dayName = GIORNI[date.getDay()===0?6:date.getDay()-1];
-  document.getElementById('modal-conferma-title').textContent =
-    `Conferma — ${dayName} ${date.getDate()}/${date.getMonth()+1}`;
-  document.getElementById('conf-ore-previste').textContent = oreRichieste + 'h';
+  document.getElementById('modal-conferma-title').textContent = 'Conferma — '+dayName+' '+date.getDate()+'/'+(date.getMonth()+1);
+  document.getElementById('conf-ore-previste').textContent = oreRichieste+'h';
   document.getElementById('conf-ore-effettive').value = oreRichieste;
   document.getElementById('giust-tipo').value = '';
   document.getElementById('giust-protocollo').value = '';
   document.getElementById('giust-note').value = '';
   document.getElementById('giust-protocollo-box').style.display = 'none';
-  document.getElementById('giustificativo-container').classList.remove('open');
-
-  const oreInput = document.getElementById('conf-ore-effettive');
-  oreInput.oninput = () => {
-    const val = parseFloat(oreInput.value);
-    const gbox = document.getElementById('giustificativo-container');
-    if (val !== oreRichieste) gbox.classList.add('open');
-    else gbox.classList.remove('open');
-  };
-
+  document.getElementById('giust-box').classList.remove('open');
   openModal('modal-conferma-ore');
 }
 
-function checkMalattia() {
-  const tipo = document.getElementById('giust-tipo').value;
-  document.getElementById('giust-protocollo-box').style.display =
-    tipo === 'malattia' ? 'block' : 'none';
-}
-
 async function saveConferma() {
-  const { dayKey, oreRichieste } = currentConfirmDay;
+  const {dayKey, oreRichieste} = currentConfirmDay;
   const oreEff = parseFloat(document.getElementById('conf-ore-effettive').value);
   const tipo = document.getElementById('giust-tipo').value;
   const protocollo = document.getElementById('giust-protocollo').value.trim();
   const note = document.getElementById('giust-note').value.trim();
-
-  if (isNaN(oreEff) || oreEff < 0) { showToast('Inserisci le ore effettive', 'error'); return; }
-
-  // Se variazione, giustificativo obbligatorio
-  if (oreEff !== oreRichieste) {
-    if (!tipo) { showToast('Inserisci il motivo della variazione', 'error'); return; }
-    if (tipo === 'malattia' && !protocollo) { showToast('Il numero di protocollo malattia è obbligatorio', 'error'); return; }
-  }
-
-  const giustificativo = (oreEff !== oreRichieste) ? { tipo, protocollo: tipo==='malattia'?protocollo:null, note } : null;
-
+  if (isNaN(oreEff)||oreEff<0) { showToast('Inserisci le ore effettive', 'error'); return; }
+  if (oreEff !== oreRichieste && !tipo) { showToast('Inserisci il motivo della variazione', 'error'); return; }
+  if (tipo === 'malattia' && !protocollo) { showToast('Il numero di protocollo malattia e obbligatorio', 'error'); return; }
+  const giustificativo = oreEff !== oreRichieste ? {tipo, protocollo: tipo==='malattia'?protocollo:null, note} : null;
   try {
-    await db.collection('timesheets').doc(`${currentUser.uid}_${dayKey}`).update({
-      oreEffettive: oreEff,
-      confermato: true,
-      giustificativo,
+    await db.collection('timesheets').doc(currentUser.uid+'_'+dayKey).update({
+      oreEffettive: oreEff, confermato: true, giustificativo,
       confermatoAt: firebase.firestore.FieldValue.serverTimestamp()
     });
-    showToast('Giornata confermata ✓', 'success');
+    showToast('Giornata confermata!', 'success');
     closeModal('modal-conferma-ore');
     loadWorkerWeek();
   } catch(e) {
@@ -2128,163 +1025,69 @@ async function saveConferma() {
   }
 }
 
-// ─────────────────────────────────────────────────────
-// WORKER STORICO
-// ─────────────────────────────────────────────────────
+// ── STORICO ──
 async function loadStorico() {
   const mese = document.getElementById('storico-month').value;
   if (!mese) return;
   const content = document.getElementById('storico-content');
   content.innerHTML = '<div class="loading-spinner"></div>';
-
-  const snap = await db.collection('timesheets')
-    .where('workerId','==',currentUser.uid)
-    .where('mese','==',mese).get();
-
-  if (snap.empty) {
-    content.innerHTML = `<div class="empty-state"><div class="empty-icon">📭</div><h3>Nessun dato per questo mese</h3></div>`;
-    return;
-  }
-
+  const snap = await db.collection('timesheets').where('workerId','==',currentUser.uid).where('mese','==',mese).get();
+  if (snap.empty) { content.innerHTML='<div class="empty-state"><div class="empty-icon">📭</div><h3>Nessun dato per questo mese</h3></div>'; return; }
   const docs = snap.docs.map(d=>d.data()).sort((a,b)=>a.data.localeCompare(b.data));
   const totReq = docs.reduce((s,t)=>s+(t.oreRichieste||0),0);
   const totEff = docs.filter(t=>t.confermato).reduce((s,t)=>s+(t.oreEffettive??t.oreRichieste??0),0);
-
-  let html = `
-  <div class="stats-grid" style="margin-bottom:20px">
+  let html = `<div class="stats-grid" style="margin-bottom:20px">
     <div class="stat-card"><div class="stat-label">Ore previste</div><div class="stat-value">${totReq.toFixed(1)}<span style="font-size:18px">h</span></div></div>
     <div class="stat-card"><div class="stat-label">Ore effettive</div><div class="stat-value">${totEff.toFixed(1)}<span style="font-size:18px">h</span></div></div>
-  </div>
-  <div class="card" style="padding:0;overflow:hidden">
-  <table><thead><tr><th>Data</th><th>Previste</th><th>Effettive</th><th>Stato</th><th>Giustificativo</th></tr></thead><tbody>`;
-
+  </div><div class="card" style="padding:0;overflow:hidden"><table><thead><tr><th>Data</th><th>Previste</th><th>Effettive</th><th>Stato</th><th>Giustificativo</th></tr></thead><tbody>`;
   docs.forEach(t => {
-    const d = new Date(t.data + 'T12:00:00');
-    const dayName = GIORNI_SHORT[d.getDay()===0?6:d.getDay()-1];
-    html += `<tr>
-      <td>${dayName} ${d.getDate()}/${d.getMonth()+1}</td>
-      <td>${t.oreRichieste}h</td>
-      <td>${t.confermato?(t.oreEffettive??t.oreRichieste)+'h':'—'}</td>
-      <td><span class="badge ${t.confermato?'badge-green':'badge-amber'}">${t.confermato?'✓ Confermata':'Pendente'}</span></td>
-      <td>${t.giustificativo?.tipo?`<span class="text-muted">${t.giustificativo.tipo}</span>`:'—'}</td>
-    </tr>`;
+    const d = new Date(t.data+'T12:00:00');
+    const dn = GIORNI_SHORT[d.getDay()===0?6:d.getDay()-1];
+    html += `<tr><td>${dn} ${d.getDate()}/${d.getMonth()+1}</td><td>${t.oreRichieste}h</td><td>${t.confermato?(t.oreEffettive??t.oreRichieste)+'h':'—'}</td>
+      <td><span class="badge ${t.confermato?'badge-green':'badge-amber'}">${t.confermato?'Confermata':'Pendente'}</span></td>
+      <td>${t.giustificativo?.tipo||'—'}</td></tr>`;
   });
   html += '</tbody></table></div>';
   content.innerHTML = html;
 }
 
-// ─────────────────────────────────────────────────────
-// ONESIGNAL
-// ─────────────────────────────────────────────────────
-window.OneSignalDeferred = window.OneSignalDeferred || [];
-OneSignalDeferred.push(async function(OneSignal) {
-  await OneSignal.init({
-    appId: "IL_TUO_ONESIGNAL_APP_ID",
-    allowLocalhostAsSecureOrigin: true
-  });
-});
-
-async function sendOneSignalNotification(workerId, title, body) {
-  try {
-    // Recupera OneSignal player_id dal profilo
-    const userDoc = await db.collection('users').doc(workerId).get();
-    const playerId = userDoc.data()?.oneSignalPlayerId;
-    if (!playerId) return;
-
-    await fetch('https://onesignal.com/api/v1/notifications', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Basic IL_TUO_ONESIGNAL_REST_KEY'
-      },
-      body: JSON.stringify({
-        app_id: 'IL_TUO_ONESIGNAL_APP_ID',
-        include_player_ids: [playerId],
-        contents: { it: body },
-        headings: { it: title }
-      })
-    });
-  } catch(e) { console.warn('OneSignal notification failed:', e); }
-}
-
-// ─────────────────────────────────────────────────────
-// UTILITÀ DATE
-// ─────────────────────────────────────────────────────
+// ── UTILITA DATE ──
 function getWeekNumber(d) {
-  const date = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
-  const dayNum = date.getUTCDay() || 7;
-  date.setUTCDate(date.getUTCDate() + 4 - dayNum);
+  const date = new Date(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate()));
+  const dayNum = date.getUTCDay()||7;
+  date.setUTCDate(date.getUTCDate()+4-dayNum);
   const yearStart = new Date(Date.UTC(date.getUTCFullYear(),0,1));
-  return Math.ceil((((date - yearStart) / 86400000) + 1) / 7);
+  return Math.ceil((((date-yearStart)/86400000)+1)/7);
 }
-
-function getCurrentWeekStr() {
-  const now = new Date();
-  return `${now.getFullYear()}-W${String(getWeekNumber(now)).padStart(2,'0')}`;
-}
-
-function getWeekStrFromDate(d) {
-  return `${d.getFullYear()}-W${String(getWeekNumber(d)).padStart(2,'0')}`;
-}
-
-function getDateWithWeekOffset(offset) {
-  const d = new Date();
-  d.setDate(d.getDate() + offset * 7);
-  return d;
-}
-
+function getCurrentWeekStr() { const now=new Date(); return now.getFullYear()+'-W'+String(getWeekNumber(now)).padStart(2,'0'); }
+function getWeekStrFromDate(d) { return d.getFullYear()+'-W'+String(getWeekNumber(d)).padStart(2,'0'); }
 function getDaysOfWeek(weekStr) {
-  const [year, w] = weekStr.split('-W').map(Number);
-  const jan1 = new Date(year, 0, 1);
-  const days = [];
+  const [year,w] = weekStr.split('-W').map(Number);
+  const jan1 = new Date(year,0,1);
   const startDay = new Date(jan1);
-  startDay.setDate(jan1.getDate() + (w - 1) * 7 - (jan1.getDay() || 7) + 1);
-  for (let i = 0; i < 7; i++) {
-    const d = new Date(startDay);
-    d.setDate(startDay.getDate() + i);
-    days.push(d);
-  }
-  return days;
+  startDay.setDate(jan1.getDate()+(w-1)*7-(jan1.getDay()||7)+1);
+  return Array.from({length:7},(_,i) => { const d=new Date(startDay); d.setDate(startDay.getDate()+i); return d; });
 }
-
 function getDaysOfMonth(monthStr) {
-  const [year, month] = monthStr.split('-').map(Number);
-  const days = [];
-  const d = new Date(year, month - 1, 1);
-  while (d.getMonth() === month - 1) {
-    days.push(new Date(d));
-    d.setDate(d.getDate() + 1);
-  }
+  const [year,month] = monthStr.split('-').map(Number);
+  const days = []; const d = new Date(year,month-1,1);
+  while(d.getMonth()===month-1) { days.push(new Date(d)); d.setDate(d.getDate()+1); }
   return days;
 }
 
-// ─────────────────────────────────────────────────────
-// MODAL
-// ─────────────────────────────────────────────────────
+// ── MODAL ──
 function openModal(id) { document.getElementById(id).classList.add('open'); }
 function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+document.querySelectorAll('.modal-overlay').forEach(o => o.addEventListener('click', function(e){ if(e.target===this) this.classList.remove('open'); }));
+document.addEventListener('keydown', e => { if(e.key==='Enter'&&document.getElementById('login-screen').style.display!=='none') doLogin(); });
 
-// Chiudi cliccando overlay
-document.querySelectorAll('.modal-overlay').forEach(overlay => {
-  overlay.addEventListener('click', function(e) {
-    if (e.target === this) this.classList.remove('open');
-  });
-});
-
-// Enter per login
-document.addEventListener('keydown', e => {
-  if (e.key === 'Enter' && document.getElementById('login-screen').style.display !== 'none') doLogin();
-});
-
-// ─────────────────────────────────────────────────────
-// TOAST
-// ─────────────────────────────────────────────────────
-function showToast(msg, type = '') {
+// ── TOAST ──
+function showToast(msg, type='') {
   const t = document.createElement('div');
-  t.className = `toast ${type}`;
+  t.className = 'toast '+type;
   t.textContent = msg;
   document.getElementById('toast-container').appendChild(t);
-  setTimeout(() => t.remove(), 3500);
+  setTimeout(()=>t.remove(), 3500);
 }
 </script>
 </body>
