@@ -1328,7 +1328,7 @@ function initApp() {
   document.getElementById('app').style.display = 'block';
   document.getElementById('nav-username').textContent = currentUserData.nome || currentUserData.email;
 
-  if (currentUserData.ruolo === 'admin') {
+  if (currentUserData.ruolo_app === 'admin') {
     document.getElementById('sidebar-admin').style.display = '';
     loadDashboard();
     loadWorkersTable();
@@ -1378,7 +1378,7 @@ function switchScheduleTab(type, btn) {
 // ─────────────────────────────────────────────────────
 async function loadDashboard() {
   // Stats workers
-  const workersSnap = await db.collection('users').where('ruolo','==','worker').get();
+  const workersSnap = await db.collection('users').where('ruolo_app','==','worker').get();
   document.getElementById('stat-workers').textContent = workersSnap.size;
 
   // Ore mese corrente
@@ -1436,7 +1436,7 @@ async function loadDashboard() {
 // COLLABORATRICI
 // ─────────────────────────────────────────────────────
 async function loadWorkersTable() {
-  const snap = await db.collection('users').where('ruolo','==','worker').orderBy('cognome').get();
+  const snap = await db.collection('users').where('ruolo_app','==','worker').orderBy('cognome').get();
   allWorkers = snap.docs.map(d => ({ id: d.id, ...d.data() }));
   renderWorkers(allWorkers);
 
