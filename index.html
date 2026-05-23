@@ -1248,10 +1248,16 @@ function getCurrentWeekStr() { const now=new Date(); return now.getFullYear()+'-
 function getWeekStrFromDate(d) { return d.getFullYear()+'-W'+String(getWeekNumber(d)).padStart(2,'0'); }
 function getDaysOfWeek(weekStr) {
   const [year,w] = weekStr.split('-W').map(Number);
-  const jan1 = new Date(year,0,1);
-  const startDay = new Date(jan1);
-  startDay.setDate(jan1.getDate()+(w-1)*7-(jan1.getDay()||7)+1);
-  return Array.from({length:7},(_,i) => { const d=new Date(startDay); d.setDate(startDay.getDate()+i); return d; });
+  // Calcola il Lunedi della settimana ISO
+  const simple = new Date(year, 0, 1 + (w - 1) * 7);
+  const dow = simple.getDay(); // 0=dom, 1=lun...
+  const monday = new Date(simple);
+  monday.setDate(simple.getDate() - (dow === 0 ? 6 : dow - 1));
+  return Array.from({length:7}, (_, i) => {
+    const d = new Date(monday);
+    d.setDate(monday.getDate() + i);
+    return d;
+  });
 }
 function getDaysOfMonth(monthStr) {
   const [year,month] = monthStr.split('-').map(Number);
