@@ -520,6 +520,7 @@ let allWorkers = [];
 let workerWeekOffset = 0;
 let currentConfirmDay = null;
 let scheduleType = 'week';
+let riepilogoTab = 'mese';
 let isRegistering = false;
 
 const GIORNI = ['Lunedi','Martedi','Mercoledi','Giovedi','Venerdi','Sabato','Domenica'];
@@ -831,6 +832,15 @@ function initSchedulePage() {
   const now = new Date();
   const w = getWeekNumber(now);
   document.getElementById('schedule-period').value = now.getFullYear()+'-W'+String(w).padStart(2,'0');
+}
+
+function switchRiepilogoTab(tab) {
+  riepilogoTab = tab;
+  document.getElementById('rtab-mese').classList.toggle('active', tab === 'mese');
+  document.getElementById('rtab-settimana').classList.toggle('active', tab === 'settimana');
+  document.getElementById('riepilogo-month').style.display = tab === 'mese' ? '' : 'none';
+  document.getElementById('riepilogo-week').style.display = tab === 'settimana' ? '' : 'none';
+  document.getElementById('riepilogo-content').innerHTML = '<div class="empty-state"><div class="empty-icon">📊</div><h3>Seleziona un periodo</h3></div>';
 }
 
 function switchScheduleTab(type, btn) {
