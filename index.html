@@ -388,13 +388,20 @@ tr:hover td{background:var(--cream);}
 
       <!-- RIEPILOGO -->
       <div id="page-riepilogo" class="page">
-        <div class="page-header"><h2>Riepilogo mensile</h2><p>Ore richieste vs effettive</p></div>
+        <div class="page-header"><h2>Riepilogo</h2><p>Ore richieste vs effettive per collaboratore</p></div>
+        <div class="tab-bar">
+          <button class="tab-btn active" onclick="switchRiepilogoTab('mese',this)">Mensile</button>
+          <button class="tab-btn" onclick="switchRiepilogoTab('settimana',this)">Settimanale</button>
+        </div>
         <div class="actions-bar">
-          <input type="month" id="riepilogo-month" class="ore-input" style="padding:8px 12px;" onchange="loadRiepilogo()">
+          <div class="actions-left">
+            <input type="month" id="riepilogo-month" class="ore-input" style="padding:8px 12px;" onchange="loadRiepilogo()">
+            <input type="week" id="riepilogo-week" class="ore-input" style="padding:8px 12px;display:none;" onchange="loadRiepilogo()">
+          </div>
           <button class="btn btn-green" onclick="exportExcel()">⬇ Esporta Excel</button>
         </div>
-        <div class="card" id="riepilogo-content">
-          <div class="empty-state"><div class="empty-icon">📊</div><h3>Seleziona un mese</h3></div>
+        <div id="riepilogo-content">
+          <div class="empty-state"><div class="empty-icon">📊</div><h3>Seleziona un periodo</h3></div>
         </div>
       </div>
 
@@ -855,10 +862,10 @@ async function renderScheduleForm() {
     const dayName = GIORNI[day.getDay()===0?6:day.getDay()-1];
     const isWeekend = day.getDay()===0||day.getDay()===6;
     const val = existing[dayKey]||'';
-    html += `<div class="ore-day ${isWeekend?'opacity-50':''}">
+    html += `<div class="ore-day" style="${isWeekend?'background:var(--cream-dark);':''}">
       <div class="ore-day-label">${dayName} <span class="day-num">${day.getDate()}/${String(day.getMonth()+1).padStart(2,'0')}</span>
       ${isWeekend?'<span class="badge badge-gray" style="font-size:10px;padding:1px 6px">Weekend</span>':''}</div>
-      <input class="ore-input" type="number" min="0" max="24" step="0.5" value="${val}" placeholder="—" data-day="${dayKey}" ${isWeekend?'disabled':''}>
+      <input class="ore-input" type="number" min="0" max="24" step="0.5" value="${val !== '' ? val : (isWeekend ? '0' : '')}" placeholder="${isWeekend?'0':'—'}" data-day="${dayKey}">
     </div>`;
   });
   html += `</div><div style="margin-top:20px;display:flex;gap:10px;justify-content:flex-end;">
