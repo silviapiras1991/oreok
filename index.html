@@ -1445,7 +1445,7 @@ auth.onAuthStateChanged(async (user) => {
       currentUserData = snap.data();
       initApp();
     } else {
-      showToast('Utente non configurato. Contatta l\'amministratore.', 'error');
+      showToast("Utente non configurato. Contatta l'amministratore.", "error");
       auth.signOut();
     }
   } else {
@@ -1713,7 +1713,7 @@ async function deleteWorker(uid, name) {
         body: JSON.stringify({ idToken: token })
       });
     } catch(authErr) {
-      // Se non ha ancora un account Auth, ignora l'errore
+      // Se non ha ancora un account Auth, ignora errore
       console.warn('Nessun account Auth da eliminare:', authErr);
     }
 
@@ -1722,7 +1722,7 @@ async function deleteWorker(uid, name) {
     loadDashboard();
   } catch(e) {
     console.error(e);
-    showToast('Errore durante l'eliminazione', 'error');
+    showToast("Errore durante l'eliminazione", "error");
   }
 }
 
@@ -1796,7 +1796,7 @@ async function saveSchedule(workerId, period, type) {
     }
   });
 
-  if (!Object.keys(giorni).length) { showToast('Inserisci almeno un\'ora', 'error'); return; }
+  if (!Object.keys(giorni).length) { showToast("Inserisci almeno un'ora", "error"); return; }
 
   const schedId = `${workerId}_${period.replace(/\W/g,'_')}`;
   try {
