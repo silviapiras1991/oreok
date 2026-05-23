@@ -316,6 +316,8 @@ tr:hover td{background:var(--cream);}
       <div class="sidebar-label">Orari</div>
       <button class="sidebar-item" onclick="showPage('invia-orari')" data-page="invia-orari"><span class="icon">📤</span><span>Invia Orari</span></button>
       <button class="sidebar-item" onclick="showPage('riepilogo')" data-page="riepilogo"><span class="icon">📋</span><span>Riepilogo</span></button>
+      <div class="sidebar-label">Impostazioni</div>
+      <button class="sidebar-item" onclick="showPage('strutture')" data-page="strutture"><span class="icon">🏢</span><span>Strutture</span></button>
     </aside>
 
     <!-- SIDEBAR WORKER -->
@@ -368,7 +370,7 @@ tr:hover td{background:var(--cream);}
           <button class="tab-btn" onclick="switchScheduleTab('month',this)">Mensile</button>
         </div>
         <div class="card">
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
             <div class="form-group" style="margin:0">
               <label>Collaboratore</label>
               <select class="form-select" id="schedule-worker-select" onchange="renderScheduleForm()">
@@ -379,6 +381,11 @@ tr:hover td{background:var(--cream);}
               <label id="schedule-period-label">Settimana</label>
               <input type="week" id="schedule-period" class="ore-input" style="width:100%;padding:10px 14px;" onchange="renderScheduleForm()">
             </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:20px;flex-wrap:wrap;">
+            <span style="font-size:13px;color:var(--text-muted);">Copia orari da:</span>
+            <input type="week" id="copia-da-week" class="ore-input" style="padding:7px 12px;">
+            <button class="btn btn-outline btn-sm" onclick="copiaSettimana()">📋 Copia</button>
           </div>
           <div id="schedule-form-area">
             <div class="empty-state"><div class="empty-icon">📆</div><h3>Seleziona collaboratore e periodo</h3></div>
@@ -402,6 +409,25 @@ tr:hover td{background:var(--cream);}
         </div>
         <div id="riepilogo-content">
           <div class="empty-state"><div class="empty-icon">📊</div><h3>Seleziona un periodo</h3></div>
+        </div>
+      </div>
+
+      <!-- STRUTTURE -->
+      <div id="page-strutture" class="page">
+        <div class="page-header"><h2>Strutture</h2><p>Gestisci le strutture dove operano i collaboratori</p></div>
+        <div class="actions-bar">
+          <div class="actions-left">
+            <input type="text" id="nuova-struttura-input" class="search-input" placeholder="Nome struttura..." style="width:280px;">
+          </div>
+          <button class="btn btn-accent" onclick="addStruttura()">＋ Aggiungi struttura</button>
+        </div>
+        <div class="card" style="padding:0;overflow:hidden">
+          <div class="table-container">
+            <table>
+              <thead><tr><th>Nome struttura</th><th></th></tr></thead>
+              <tbody id="strutture-tbody"><tr><td colspan="2"><div class="loading-spinner"></div></td></tr></tbody>
+            </table>
+          </div>
         </div>
       </div>
 
@@ -463,10 +489,17 @@ tr:hover td{background:var(--cream);}
       <h3 id="modal-conferma-title">Conferma giornata</h3>
       <button class="modal-close" onclick="closeModal('modal-conferma-ore')">✕</button>
     </div>
-    <p class="text-muted" style="margin-bottom:16px">Ore previste: <strong id="conf-ore-previste">—</strong></p>
+    <p class="text-muted" style="margin-bottom:8px">Ore previste: <strong id="conf-ore-previste">—</strong></p>
+    <p class="text-muted" style="margin-bottom:16px">Struttura: <strong id="conf-struttura-prevista">—</strong></p>
     <div class="form-group">
       <label>Ore effettivamente lavorate</label>
       <input type="number" id="conf-ore-effettive" min="0" max="24" step="0.5" placeholder="6.0" oninput="checkVariazione()">
+    </div>
+    <div class="form-group">
+      <label>Struttura dove hai lavorato</label>
+      <select id="conf-struttura-effettiva" class="form-select">
+        <option value="">— Seleziona struttura —</option>
+      </select>
     </div>
     <div class="giustificativo-box" id="giust-box">
       <div class="form-group" style="margin:0">
@@ -483,6 +516,19 @@ tr:hover td{background:var(--cream);}
         <div class="form-group" style="margin:0">
           <label>N° protocollo malattia <span style="color:var(--accent)">*</span></label>
           <input type="text" id="giust-protocollo" placeholder="Es. INPS-2024-XXXXX">
+        </div>
+        <div class="input-row" style="margin-top:10px">
+          <div class="form-group" style="margin:0">
+            <label>Dal giorno <span style="color:var(--accent)">*</span></label>
+            <input type="date" id="giust-malattia-dal">
+          </div>
+          <div class="form-group" style="margin:0">
+            <label>Al giorno <span style="color:var(--accent)">*</span></label>
+            <input type="date" id="giust-malattia-al">
+          </div>
+        </div>
+        <div style="background:var(--amber-light);border-radius:var(--radius-sm);padding:10px 12px;margin-top:8px;font-size:13px;color:var(--amber);">
+          ℹ️ Le ore dei giorni compresi nel periodo di malattia verranno impostate automaticamente a 0.
         </div>
       </div>
       <div class="form-group" style="margin-top:10px;margin-bottom:0">
@@ -695,6 +741,7 @@ function initApp() {
     document.getElementById('sidebar-admin').style.display = '';
     loadDashboard();
     loadWorkersTable();
+    loadStrutture();
     initSchedulePage();
     initRiepilogoPage();
   } else {
@@ -834,6 +881,115 @@ async function deleteWorker(uid, name) {
   }
 }
 
+
+// ── STRUTTURE ──
+let allStrutture = [];
+
+async function loadStrutture() {
+  const snap = await db.collection('strutture').where('adminId','==',currentUser.uid).orderBy('nome').get();
+  allStrutture = snap.docs.map(d => ({id:d.id,...d.data()}));
+  renderStrutture();
+  updateStruttureSelects();
+}
+
+function renderStrutture() {
+  const tbody = document.getElementById('strutture-tbody');
+  if (!tbody) return;
+  if (!allStrutture.length) {
+    tbody.innerHTML = '<tr><td colspan="2"><div class="empty-state" style="padding:30px"><div class="empty-icon">🏢</div><h3>Nessuna struttura</h3><p>Aggiungi le strutture dove operano i collaboratori</p></div></td></tr>';
+    return;
+  }
+  tbody.innerHTML = allStrutture.map(s => `
+    <tr>
+      <td style="font-weight:500">${s.nome}</td>
+      <td style="text-align:right"><button class="btn-icon danger" onclick="deleteStruttura('${s.id}','${s.nome}')">🗑</button></td>
+    </tr>`).join('');
+}
+
+function updateStruttureSelects() {
+  // Aggiorna tutti i select strutture nell'app
+  const opts = '<option value="">— Nessuna —</option>' + allStrutture.map(s => `<option value="${s.nome}">${s.nome}</option>`).join('');
+  const confSel = document.getElementById('conf-struttura-effettiva');
+  if (confSel) confSel.innerHTML = '<option value="">— Seleziona struttura —</option>' + allStrutture.map(s => `<option value="${s.nome}">${s.nome}</option>`).join('');
+}
+
+async function addStruttura() {
+  const nome = document.getElementById('nuova-struttura-input').value.trim();
+  if (!nome) { showToast('Inserisci il nome della struttura', 'error'); return; }
+  const exists = allStrutture.find(s => s.nome.toLowerCase() === nome.toLowerCase());
+  if (exists) { showToast('Struttura gia presente', 'error'); return; }
+  try {
+    await db.collection('strutture').add({ nome, adminId: currentUser.uid, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
+    document.getElementById('nuova-struttura-input').value = '';
+    showToast(nome + ' aggiunta!', 'success');
+    loadStrutture();
+  } catch(e) { showToast('Errore: ' + e.message, 'error'); }
+}
+
+async function deleteStruttura(id, nome) {
+  if (!confirm('Eliminare la struttura "' + nome + '"?')) return;
+  await db.collection('strutture').doc(id).delete();
+  showToast(nome + ' eliminata', 'success');
+  loadStrutture();
+}
+
+// ── COPIA SETTIMANA ──
+async function copiaSettimana() {
+  const workerId = document.getElementById('schedule-worker-select').value;
+  const copiaDa = document.getElementById('copia-da-week').value;
+  const periodoDest = document.getElementById('schedule-period').value;
+
+  if (!workerId) { showToast('Seleziona prima un collaboratore', 'error'); return; }
+  if (!copiaDa) { showToast('Seleziona la settimana da cui copiare', 'error'); return; }
+  if (!periodoDest) { showToast('Seleziona la settimana di destinazione', 'error'); return; }
+  if (copiaDa === periodoDest) { showToast('La settimana di origine e quella di destinazione sono uguali', 'error'); return; }
+
+  const schedId = workerId + '_' + copiaDa.replace(/\W/g,'_');
+  const schedDoc = await db.collection('schedules').doc(schedId).get();
+
+  if (!schedDoc.exists || !schedDoc.data().giorni) {
+    showToast('Nessun orario trovato per la settimana selezionata', 'error');
+    return;
+  }
+
+  const srcGiorni = schedDoc.data().giorni;
+  const srcDays = getDaysOfWeek(copiaDa);
+  const destDays = getDaysOfWeek(periodoDest);
+
+  // Mappa i giorni per indice (lun=0, mar=1...)
+  const inputs = document.querySelectorAll('#schedule-form-area .ore-input');
+  if (!inputs.length) {
+    showToast('Prima seleziona collaboratore e settimana di destinazione', 'error');
+    return;
+  }
+
+  // Crea mappa src per indice giorno
+  const srcByIndex = {};
+  srcDays.forEach((day, i) => {
+    const dayKey = day.toISOString().split('T')[0];
+    srcByIndex[i] = srcGiorni[dayKey] !== undefined ? srcGiorni[dayKey] : '';
+  });
+
+  // Applica agli input di destinazione
+  inputs.forEach((inp, i) => {
+    if (srcByIndex[i] !== undefined && srcByIndex[i] !== '') {
+      inp.value = srcByIndex[i];
+    }
+  });
+
+  // Copia anche strutture se presenti
+  const srcStrutture = schedDoc.data().strutture || {};
+  const strutturaSelects = document.querySelectorAll('#schedule-form-area .struttura-select');
+  srcDays.forEach((day, i) => {
+    const dayKey = day.toISOString().split('T')[0];
+    if (srcStrutture[dayKey] && strutturaSelects[i]) {
+      strutturaSelects[i].value = srcStrutture[dayKey];
+    }
+  });
+
+  showToast('Orari copiati! Modifica se necessario e poi invia.', 'success');
+}
+
 // ── INVIA ORARI ──
 function initSchedulePage() {
   const now = new Date();
@@ -887,10 +1043,15 @@ async function renderScheduleForm() {
     const dayName = GIORNI[day.getDay()===0?6:day.getDay()-1];
     const isWeekend = day.getDay()===0||day.getDay()===6;
     const val = existing[dayKey]||'';
-    html += `<div class="ore-day" style="${isWeekend?'background:var(--cream-dark);':''}">
+    const strutturaVal = existing['struttura_'+dayKey] || '';
+    const struttureOpts = allStrutture.map(s => `<option value="${s.nome}" ${s.nome===strutturaVal?'selected':''}>${s.nome}</option>`).join('');
+    html += `<div class="ore-day" style="${isWeekend?'background:var(--cream-dark);':''};grid-template-columns:130px 100px 1fr;">
       <div class="ore-day-label">${dayName} <span class="day-num">${day.getDate()}/${String(day.getMonth()+1).padStart(2,'0')}</span>
       ${isWeekend?'<span class="badge badge-gray" style="font-size:10px;padding:1px 6px">Weekend</span>':''}</div>
       <input class="ore-input" type="number" min="0" max="24" step="0.5" value="${val !== '' ? val : (isWeekend ? '0' : '')}" placeholder="${isWeekend?'0':'—'}" data-day="${dayKey}">
+      <select class="struttura-select form-select" data-day="${dayKey}" style="font-size:13px;padding:8px 10px;">
+        <option value="">— Struttura —</option>${struttureOpts}
+      </select>
     </div>`;
   });
   html += `</div><div style="margin-top:20px;display:flex;gap:10px;justify-content:flex-end;">
@@ -903,17 +1064,21 @@ async function renderScheduleForm() {
 async function saveSchedule(workerId, period) {
   const giorni = {};
   let totOre = 0;
-  document.querySelectorAll('#schedule-form-area .ore-input:not([disabled])').forEach(inp => {
+  const strutture = {};
+  document.querySelectorAll('#schedule-form-area .ore-input').forEach(inp => {
     if (inp.value !== '') {
       giorni[inp.dataset.day] = parseFloat(inp.value);
       totOre += parseFloat(inp.value);
     }
   });
+  document.querySelectorAll('#schedule-form-area .struttura-select').forEach(sel => {
+    if (sel.value) strutture['struttura_'+sel.dataset.day] = sel.value;
+  });
   if (!Object.keys(giorni).length) { showToast('Inserisci almeno un ora', 'error'); return; }
   const schedId = workerId+'_'+period.replace(/\W/g,'_');
   try {
     await db.collection('schedules').doc(schedId).set({
-      workerId, period, type: scheduleType, giorni, totOre,
+      workerId, period, type: scheduleType, giorni, totOre, strutture,
       inviatoDa: currentUser.uid,
       inviatoAt: firebase.firestore.FieldValue.serverTimestamp()
     });
@@ -925,6 +1090,7 @@ async function saveSchedule(workerId, period) {
         workerId, data: day, mese,
         settimana: getWeekStrFromDate(new Date(day+'T12:00:00')),
         oreRichieste: ore,
+        strutturaRichiesta: strutture['struttura_'+day] || null,
         giornoLibero: ore === 0,
         confermato: ore === 0 ? true : false,
         giustificativo: ore === 0 ? {tipo: 'giorno_libero', note: 'Nessuna ora assegnata'} : null,
@@ -1154,7 +1320,7 @@ async function loadWorkerWeek() {
         <div class="day-card-date">${dateStr}</div>
         <div class="day-card-hours">Ore previste: <strong>${oreReq}h</strong>${confermato?' &nbsp;·&nbsp; Effettive: <strong>'+(oreEff??oreReq)+'h</strong>':''}${data.giustificativo?.tipo?' &nbsp;·&nbsp; <span style="color:var(--amber)">'+data.giustificativo.tipo+'</span>':''}</div>
       </div>
-      <div>${confermato?'<span class="badge badge-green">✓ Confermata</span>':'<button class="btn btn-accent btn-sm" onclick="openConferma(\''+dayKey+'\','+oreReq+')">Conferma</button>'}</div>
+      <div>${confermato?'<span class="badge badge-green">✓ Confermata</span>':'<button class="btn btn-accent btn-sm" onclick="openConferma(\''+dayKey+'\','+oreReq+',\''+( data.strutturaRichiesta||'')+'\'  )">Conferma</button>'}</div>
     </div>`;
   }).join('');
 }
@@ -1172,18 +1338,29 @@ function checkMalattia() {
   document.getElementById('giust-protocollo-box').style.display = document.getElementById('giust-tipo').value === 'malattia' ? 'block' : 'none';
 }
 
-function openConferma(dayKey, oreRichieste) {
-  currentConfirmDay = {dayKey, oreRichieste};
+function openConferma(dayKey, oreRichieste, strutturaRichiesta) {
+  currentConfirmDay = {dayKey, oreRichieste, strutturaRichiesta};
   const date = new Date(dayKey+'T12:00:00');
   const dayName = GIORNI[date.getDay()===0?6:date.getDay()-1];
   document.getElementById('modal-conferma-title').textContent = 'Conferma — '+dayName+' '+date.getDate()+'/'+(date.getMonth()+1);
   document.getElementById('conf-ore-previste').textContent = oreRichieste+'h';
+  document.getElementById('conf-struttura-prevista').textContent = strutturaRichiesta || 'Non specificata';
   document.getElementById('conf-ore-effettive').value = oreRichieste;
   document.getElementById('giust-tipo').value = '';
   document.getElementById('giust-protocollo').value = '';
   document.getElementById('giust-note').value = '';
   document.getElementById('giust-protocollo-box').style.display = 'none';
   document.getElementById('giust-box').classList.remove('open');
+  // Preseleziona struttura prevista nel select
+  const strSel = document.getElementById('conf-struttura-effettiva');
+  updateStruttureSelects();
+  if (strutturaRichiesta) strSel.value = strutturaRichiesta;
+  // Imposta data minima/massima per malattia
+  const today = new Date().toISOString().split('T')[0];
+  document.getElementById('giust-malattia-dal').value = dayKey;
+  document.getElementById('giust-malattia-dal').max = today;
+  document.getElementById('giust-malattia-al').value = dayKey;
+  document.getElementById('giust-malattia-al').min = dayKey;
   openModal('modal-conferma-ore');
 }
 
@@ -1193,19 +1370,64 @@ async function saveConferma() {
   const tipo = document.getElementById('giust-tipo').value;
   const protocollo = document.getElementById('giust-protocollo').value.trim();
   const note = document.getElementById('giust-note').value.trim();
+  const strutturaEff = document.getElementById('conf-struttura-effettiva').value;
+  const malattiaDAL = document.getElementById('giust-malattia-dal').value;
+  const malattiaAL = document.getElementById('giust-malattia-al').value;
+
   if (isNaN(oreEff)||oreEff<0) { showToast('Inserisci le ore effettive', 'error'); return; }
   if (oreEff !== oreRichieste && !tipo) { showToast('Inserisci il motivo della variazione', 'error'); return; }
   if (tipo === 'malattia' && !protocollo) { showToast('Il numero di protocollo malattia e obbligatorio', 'error'); return; }
-  const giustificativo = oreEff !== oreRichieste ? {tipo, protocollo: tipo==='malattia'?protocollo:null, note} : null;
+  if (tipo === 'malattia' && (!malattiaDAL || !malattiaAL)) { showToast('Inserisci il periodo di malattia', 'error'); return; }
+  if (!strutturaEff && allStrutture.length > 0) { showToast('Seleziona la struttura dove hai lavorato', 'error'); return; }
+
+  const giustificativo = oreEff !== oreRichieste ? {
+    tipo, protocollo: tipo==='malattia'?protocollo:null,
+    dal: tipo==='malattia'?malattiaDAL:null,
+    al: tipo==='malattia'?malattiaAL:null,
+    note
+  } : null;
+
   try {
-    await db.collection('timesheets').doc(currentUser.uid+'_'+dayKey).update({
-      oreEffettive: oreEff, confermato: true, giustificativo,
+    const batch = db.batch();
+
+    // Aggiorna giorno corrente
+    batch.update(db.collection('timesheets').doc(currentUser.uid+'_'+dayKey), {
+      oreEffettive: oreEff,
+      strutturaEffettiva: strutturaEff || null,
+      confermato: true,
+      giustificativo,
       confermatoAt: firebase.firestore.FieldValue.serverTimestamp()
     });
+
+    // Se malattia, aggiorna automaticamente i giorni del periodo
+    if (tipo === 'malattia' && malattiaDAL && malattiaAL) {
+      const dal = new Date(malattiaDAL+'T12:00:00');
+      const al = new Date(malattiaAL+'T12:00:00');
+      const cur = new Date(dal);
+      while (cur <= al) {
+        const curKey = cur.toISOString().split('T')[0];
+        if (curKey !== dayKey) {
+          const tsRef = db.collection('timesheets').doc(currentUser.uid+'_'+curKey);
+          const tsSnap = await tsRef.get();
+          if (tsSnap.exists && !tsSnap.data().confermato) {
+            batch.update(tsRef, {
+              oreEffettive: 0,
+              confermato: true,
+              giustificativo: {tipo:'malattia', protocollo, dal:malattiaDAL, al:malattiaAL, note:'Periodo malattia automatico'},
+              confermatoAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+          }
+        }
+        cur.setDate(cur.getDate()+1);
+      }
+    }
+
+    await batch.commit();
     showToast('Giornata confermata!', 'success');
     closeModal('modal-conferma-ore');
     loadWorkerWeek();
   } catch(e) {
+    console.error(e);
     showToast('Errore durante la conferma', 'error');
   }
 }
