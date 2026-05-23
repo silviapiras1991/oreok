@@ -1245,18 +1245,29 @@ function getWeekNumber(d) {
   return Math.ceil((((date-yearStart)/86400000)+1)/7);
 }
 function getCurrentWeekStr() { const now=new Date(); return now.getFullYear()+'-W'+String(getWeekNumber(now)).padStart(2,'0'); }
-function getWeekStrFromDate(d) { return d.getFullYear()+'-W'+String(getWeekNumber(d)).padStart(2,'0'); }
+function getWeekStrFromDate(d) {
+  // Usa UTC per coerenza
+  const utcD = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+  return utcD.getUTCFullYear()+'-W'+String(getWeekNumber(utcD)).padStart(2,'0');
+}
 function getDaysOfWeek(weekStr) {
-  const [year,w] = weekStr.split('-W').map(Number);
-  // Metodo ISO 8601 affidabile: il 4 gennaio e sempre nella settimana 1
-  const jan4 = new Date(year, 0, 4);
-  const jan4dow = jan4.getDay() || 7; // converti 0 (dom) in 7
-  const monday = new Date(jan4);
-  monday.setDate(jan4.getDate() - jan4dow + 1 + (w - 1) * 7);
+  // weekStr formato: "2026-W21"
+  // Il valore di type="week" corrisponde sempre al lunedi
+  // Usiamo Date.UTC per evitare problemi di timezone
+  const [yearStr, wStr] = weekStr.split('-W');
+  const year = parseInt(yearStr);
+  const week = parseInt(wStr);
+  // 4 gennaio e sempre in settimana 1 (ISO 8601)
+  const d = new Date(Date.UTC(year, 0, 4));
+  // Trova il lunedi della settimana 1
+  d.setUTCDate(d.getUTCDate() - (d.getUTCDay() || 7) + 1);
+  // Aggiungi le settimane necessarie
+  d.setUTCDate(d.getUTCDate() + (week - 1) * 7);
+  // Genera i 7 giorni
   return Array.from({length:7}, (_, i) => {
-    const d = new Date(monday);
-    d.setDate(monday.getDate() + i);
-    return d;
+    const day = new Date(d);
+    day.setUTCDate(d.getUTCDate() + i);
+    return day;
   });
 }
 function getDaysOfMonth(monthStr) {
