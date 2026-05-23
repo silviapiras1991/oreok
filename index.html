@@ -1248,11 +1248,11 @@ function getCurrentWeekStr() { const now=new Date(); return now.getFullYear()+'-
 function getWeekStrFromDate(d) { return d.getFullYear()+'-W'+String(getWeekNumber(d)).padStart(2,'0'); }
 function getDaysOfWeek(weekStr) {
   const [year,w] = weekStr.split('-W').map(Number);
-  // Calcola il Lunedi della settimana ISO
-  const simple = new Date(year, 0, 1 + (w - 1) * 7);
-  const dow = simple.getDay(); // 0=dom, 1=lun...
-  const monday = new Date(simple);
-  monday.setDate(simple.getDate() - (dow === 0 ? 6 : dow - 1));
+  // Metodo ISO 8601 affidabile: il 4 gennaio e sempre nella settimana 1
+  const jan4 = new Date(year, 0, 4);
+  const jan4dow = jan4.getDay() || 7; // converti 0 (dom) in 7
+  const monday = new Date(jan4);
+  monday.setDate(jan4.getDate() - jan4dow + 1 + (w - 1) * 7);
   return Array.from({length:7}, (_, i) => {
     const d = new Date(monday);
     d.setDate(monday.getDate() + i);
