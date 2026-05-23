@@ -1379,41 +1379,55 @@ async function doRegister() {
   if (pw.length < 6) { showLoginError('La password deve essere di almeno 6 caratteri'); return; }
   if (!inviteCode) { showLoginError('Inserisci il codice invito ricevuto dalla responsabile'); return; }
 
-  // Cerca il responsabile con questo codice invito
-  const adminSnap = await db.collection('users')
-    .where('codiceInvito', '==', inviteCode)
-    .where('ruolo_app', '==', 'admin')
-    .get();
-
-  if (adminSnap.empty) {
-    showLoginError('Codice invito non valido. Controlla con la tua responsabile.');
-    return;
-  }
-
-  const adminId = adminSnap.docs[0].id;
-
   const btn = document.getElementById('btn-register');
   btn.disabled = true;
-  btn.textContent = 'Creazione in corso...';
+  btn.textContent = 'Verifica codice...';
 
   try {
+    // Cerca il responsabile con questo codice invito
+    const adminSnap = await db.collection('users')
+      .where('codiceInvito', '==', inviteCode)
+      .get();
+
+    if (adminSnap.empty) {
+      btn.disabled = false;
+      btn.textContent = 'Crea account';
+      showLoginError('Codice invito non valido. Controlla con la tua responsabile.');
+      return;
+    }
+
+    // Trova il doc admin
+    const adminDoc = adminSnap.docs.find(d => d.data().ruolo_app === 'admin');
+    if (!adminDoc) {
+      btn.disabled = false;
+      btn.textContent = 'Crea account';
+      showLoginError('Codice invito non valido.');
+      return;
+    }
+
+    const adminId = adminDoc.id;
+    btn.textContent = 'Creazione account...';
+
+    // Crea account Firebase Auth
     const cred = await auth.createUserWithEmailAndPassword(email, pw);
     const uid = cred.user.uid;
+
+    btn.textContent = 'Salvataggio profilo...';
 
     // Controlla se esiste già un documento pre-registrato con questa email
     const preSnap = await db.collection('users')
       .where('email', '==', email)
       .where('adminId', '==', adminId)
-      .where('preRegistrato', '==', true)
       .get();
 
     if (!preSnap.empty) {
-      // Aggiorna il documento esistente con l'UID reale
       const preDoc = preSnap.docs[0];
-      await db.collection('users').doc(preDoc.id).delete();
+      if (preDoc.id !== uid) {
+        await db.collection('users').doc(preDoc.id).delete();
+      }
     }
 
-    // Crea documento definitivo con UID Firebase Auth
+    // Crea documento definitivo
     await db.collection('users').doc(uid).set({
       nome,
       cognome,
@@ -1426,13 +1440,14 @@ async function doRegister() {
       createdAt: firebase.firestore.FieldValue.serverTimestamp()
     });
 
-    // account creato, onAuthStateChanged gestirà il resto
+    // onAuthStateChanged gestirà il redirect automatico
 
   } catch(e) {
     btn.disabled = false;
     btn.textContent = 'Crea account';
     if (e.code === 'auth/email-already-in-use') { showLoginError('Email già registrata'); return; }
     if (e.code === 'auth/invalid-email') { showLoginError('Email non valida'); return; }
+    if (e.code === 'auth/weak-password') { showLoginError('Password troppo corta (min. 6 caratteri)'); return; }
     showLoginError('Errore: ' + e.message);
   }
 }
