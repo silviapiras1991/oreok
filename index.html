@@ -925,15 +925,75 @@
       <h1>Ore <span>OK</span></h1>
       <p>Gestione personale mensa scolastica</p>
     </div>
-    <div class="form-group">
-      <label>Email</label>
-      <input type="email" id="login-email" placeholder="nome@scuola.it" autocomplete="email">
+
+    <!-- TAB SWITCH -->
+    <div style="display:flex;background:var(--cream);border-radius:var(--radius-sm);padding:4px;margin-bottom:24px;gap:4px;">
+      <button id="tab-login" onclick="switchAuthTab('login')"
+        style="flex:1;padding:8px;border:none;border-radius:6px;font-family:DM Sans,sans-serif;font-size:14px;font-weight:500;cursor:pointer;background:white;color:var(--accent);box-shadow:0 1px 4px rgba(0,0,0,0.08);transition:all 0.2s;">
+        Accedi
+      </button>
+      <button id="tab-register" onclick="switchAuthTab('register')"
+        style="flex:1;padding:8px;border:none;border-radius:6px;font-family:DM Sans,sans-serif;font-size:14px;font-weight:400;cursor:pointer;background:transparent;color:var(--text-muted);transition:all 0.2s;">
+        Registrati
+      </button>
     </div>
-    <div class="form-group">
-      <label>Password</label>
-      <input type="password" id="login-password" placeholder="••••••••" autocomplete="current-password">
+
+    <!-- LOGIN FORM -->
+    <div id="form-login">
+      <div class="form-group">
+        <label>Email</label>
+        <input type="email" id="login-email" placeholder="nome@scuola.it" autocomplete="email">
+      </div>
+      <div class="form-group">
+        <label>Password</label>
+        <input type="password" id="login-password" placeholder="••••••••" autocomplete="current-password">
+      </div>
+      <button class="btn-primary" id="btn-login" onclick="doLogin()">Accedi</button>
     </div>
-    <button class="btn-primary" id="btn-login" onclick="doLogin()">Accedi</button>
+
+    <!-- REGISTER FORM -->
+    <div id="form-register" style="display:none;">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div class="form-group">
+          <label>Nome</label>
+          <input type="text" id="reg-nome" placeholder="Mario">
+        </div>
+        <div class="form-group">
+          <label>Cognome</label>
+          <input type="text" id="reg-cognome" placeholder="Rossi">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Email</label>
+        <input type="email" id="reg-email" placeholder="mario.rossi@email.com">
+      </div>
+      <div class="form-group">
+        <label>Password</label>
+        <input type="password" id="reg-password" placeholder="Min. 6 caratteri">
+      </div>
+
+      <!-- INFO REGISTRAZIONE -->
+      <div style="background:var(--accent-light);border-radius:var(--radius-sm);padding:12px 14px;margin-bottom:4px;">
+        <p style="font-size:13px;color:var(--accent);margin:0;">
+          📋 Inserisci il codice invito ricevuto dalla tua responsabile per collegare il tuo account.
+        </p>
+      </div>
+
+        <!-- CODICE INVITO (solo se collaboratore) -->
+      <div id="worker-code-box" style="display:block;">
+        <div class="form-group">
+          <label>Codice invito <span style="color:var(--accent)">*</span></label>
+          <input type="text" id="reg-invite-code" placeholder="Inserisci il codice ricevuto dalla responsabile" style="text-transform:uppercase;">
+        </div>
+        <div class="form-group">
+          <label>Qualifica <span style="color:var(--text-muted);font-weight:300">(opzionale)</span></label>
+          <input type="text" id="reg-qualifica" placeholder="Es. Cuoco, Addetto mensa...">
+        </div>
+      </div>
+
+      <button class="btn-primary" id="btn-register" onclick="doRegister()">Crea account</button>
+    </div>
+
     <div class="login-error" id="login-error"></div>
   </div>
 </div>
@@ -946,7 +1006,7 @@
   <nav class="navbar">
     <div class="navbar-logo">Ore <span>OK</span></div>
     <div class="navbar-right">
-      <div class="navbar-user">Benvenuta, <strong id="nav-username">—</strong></div>
+      <div class="navbar-user">Ciao, <strong id="nav-username">—</strong></div>
       <button class="btn-logout" onclick="doLogout()">Esci</button>
     </div>
   </nav>
@@ -959,8 +1019,8 @@
         <button class="sidebar-item active" onclick="showPage('dashboard')" data-page="dashboard">
           <span class="icon">📊</span><span>Dashboard</span>
         </button>
-        <button class="sidebar-item" onclick="showPage('collaboratrici')" data-page="collaboratrici">
-          <span class="icon">👥</span><span>Collaboratrici</span>
+        <button class="sidebar-item" onclick="showPage('collaboratori')" data-page="collaboratori">
+          <span class="icon">👥</span><span>Collaboratori</span>
         </button>
       </div>
       <div class="sidebar-section">
@@ -997,7 +1057,7 @@
         </div>
         <div class="stats-grid" id="stats-grid">
           <div class="stat-card">
-            <div class="stat-label">Collaboratrici attive</div>
+            <div class="stat-label">Collaboratori attivi</div>
             <div class="stat-value" id="stat-workers">—</div>
           </div>
           <div class="stat-card">
@@ -1023,17 +1083,17 @@
       </div>
 
       <!-- ── COLLABORATRICI (ADMIN) ── -->
-      <div id="page-collaboratrici" class="page">
+      <div id="page-collaboratori" class="page">
         <div class="page-header">
-          <h2>Collaboratrici</h2>
+          <h2>Collaboratori</h2>
           <p>Gestisci l'anagrafica del personale</p>
         </div>
         <div class="actions-bar">
           <div class="actions-left">
-            <input class="search-input" type="text" placeholder="🔍  Cerca collaboratrice..." oninput="filterWorkers(this.value)" id="search-workers">
+            <input class="search-input" type="text" placeholder="🔍  Cerca collaboratore..." oninput="filterWorkers(this.value)" id="search-workers">
           </div>
           <button class="btn btn-accent" onclick="openModal('modal-add-worker')">
-            ＋ Aggiungi collaboratrice
+            ＋ Aggiungi collaboratore
           </button>
         </div>
         <div class="card" style="padding:0; overflow:hidden">
@@ -1071,7 +1131,7 @@
         <div class="card">
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px">
             <div class="form-group" style="margin:0">
-              <label>Collaboratrice</label>
+              <label>Collaboratore</label>
               <select class="form-select" id="schedule-worker-select" onchange="loadScheduleWorker()">
                 <option value="">— Seleziona —</option>
               </select>
@@ -1085,7 +1145,7 @@
           <div id="schedule-form-area">
             <div class="empty-state">
               <div class="empty-icon">📆</div>
-              <h3>Seleziona collaboratrice e periodo</h3>
+              <h3>Seleziona collaboratore e periodo</h3>
               <p>Poi potrai inserire le ore per ogni giorno</p>
             </div>
           </div>
@@ -1096,7 +1156,7 @@
       <div id="page-riepilogo" class="page">
         <div class="page-header">
           <h2>Riepilogo mensile</h2>
-          <p>Ore richieste vs effettive per ogni collaboratrice</p>
+          <p>Ore richieste vs effettive per ogni collaboratore</p>
         </div>
         <div class="actions-bar">
           <div class="actions-left">
@@ -1110,7 +1170,7 @@
           <div class="empty-state">
             <div class="empty-icon">📊</div>
             <h3>Seleziona un mese</h3>
-            <p>Verrà mostrato il riepilogo di tutte le collaboratrici</p>
+            <p>Verrà mostrato il riepilogo di tutte le collaboratori</p>
           </div>
         </div>
       </div>
@@ -1162,11 +1222,11 @@
      MODALI
 ═══════════════════════════════════════════════════ -->
 
-<!-- Aggiungi collaboratrice -->
+<!-- Aggiungi collaboratore -->
 <div class="modal-overlay" id="modal-add-worker">
   <div class="modal">
     <div class="modal-header">
-      <h3>Aggiungi collaboratrice</h3>
+      <h3>Aggiungi collaboratore</h3>
       <button class="modal-close" onclick="closeModal('modal-add-worker')">✕</button>
     </div>
     <div class="input-row">
@@ -1181,7 +1241,7 @@
     </div>
     <div class="form-group">
       <label>Email</label>
-      <input type="email" id="worker-email" placeholder="maria.rossi@email.com">
+      <input type="email" id="worker-email" placeholder="es. mario.rossi@email.com">
     </div>
     <div class="form-group">
       <label>Password temporanea</label>
@@ -1189,7 +1249,7 @@
     </div>
     <div class="form-group">
       <label>Ruolo / Qualifica</label>
-      <input type="text" id="worker-ruolo" placeholder="Es. Cuoca, Addetta, ecc.">
+      <input type="text" id="worker-ruolo" placeholder="Es. Cuoco, Addetto, ecc.">
     </div>
     <div class="modal-footer">
       <button class="btn btn-outline" onclick="closeModal('modal-add-worker')">Annulla</button>
@@ -1275,6 +1335,96 @@ const GIORNI_SHORT = ['Lun','Mar','Mer','Gio','Ven','Sab','Dom'];
 // ─────────────────────────────────────────────────────
 // AUTH
 // ─────────────────────────────────────────────────────
+// ── SWITCH TAB LOGIN/REGISTER ──
+function switchAuthTab(tab) {
+  const isLogin = tab === 'login';
+  document.getElementById('form-login').style.display = isLogin ? 'block' : 'none';
+  document.getElementById('form-register').style.display = isLogin ? 'none' : 'block';
+  document.getElementById('login-error').style.display = 'none';
+
+  const tLogin = document.getElementById('tab-login');
+  const tReg = document.getElementById('tab-register');
+  if (isLogin) {
+    tLogin.style.background = 'white';
+    tLogin.style.color = 'var(--accent)';
+    tLogin.style.fontWeight = '500';
+    tLogin.style.boxShadow = '0 1px 4px rgba(0,0,0,0.08)';
+    tReg.style.background = 'transparent';
+    tReg.style.color = 'var(--text-muted)';
+    tReg.style.fontWeight = '400';
+    tReg.style.boxShadow = 'none';
+  } else {
+    tReg.style.background = 'white';
+    tReg.style.color = 'var(--accent)';
+    tReg.style.fontWeight = '500';
+    tReg.style.boxShadow = '0 1px 4px rgba(0,0,0,0.08)';
+    tLogin.style.background = 'transparent';
+    tLogin.style.color = 'var(--text-muted)';
+    tLogin.style.fontWeight = '400';
+    tLogin.style.boxShadow = 'none';
+  }
+}
+
+
+
+// ── REGISTRAZIONE ──
+async function doRegister() {
+  const nome = document.getElementById('reg-nome').value.trim();
+  const cognome = document.getElementById('reg-cognome').value.trim();
+  const email = document.getElementById('reg-email').value.trim();
+  const pw = document.getElementById('reg-password').value.trim();
+  const inviteCode = document.getElementById('reg-invite-code').value.trim().toUpperCase();
+  const qualifica = document.getElementById('reg-qualifica')?.value.trim() || '';
+
+  document.getElementById('login-error').style.display = 'none';
+
+  if (!nome || !cognome || !email || !pw) { showLoginError('Compila tutti i campi obbligatori'); return; }
+  if (pw.length < 6) { showLoginError('La password deve essere di almeno 6 caratteri'); return; }
+  if (!inviteCode) { showLoginError('Inserisci il codice invito ricevuto dalla responsabile'); return; }
+
+  // Cerca il responsabile con questo codice invito
+  const adminSnap = await db.collection('users')
+    .where('codiceInvito', '==', inviteCode)
+    .where('ruolo_app', '==', 'admin')
+    .get();
+
+  if (adminSnap.empty) {
+    showLoginError('Codice invito non valido. Controlla con la tua responsabile.');
+    return;
+  }
+
+  const adminId = adminSnap.docs[0].id;
+
+  const btn = document.getElementById('btn-register');
+  btn.disabled = true;
+  btn.textContent = 'Creazione in corso...';
+
+  try {
+    const cred = await auth.createUserWithEmailAndPassword(email, pw);
+    const uid = cred.user.uid;
+
+    await db.collection('users').doc(uid).set({
+      nome,
+      cognome,
+      email,
+      ruolo: qualifica || 'Collaboratore',
+      ruolo_app: 'worker',
+      adminId: adminId,
+      attiva: true,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+
+    // account creato, onAuthStateChanged gestirà il resto
+
+  } catch(e) {
+    btn.disabled = false;
+    btn.textContent = 'Crea account';
+    if (e.code === 'auth/email-already-in-use') { showLoginError('Email già registrata'); return; }
+    if (e.code === 'auth/invalid-email') { showLoginError('Email non valida'); return; }
+    showLoginError('Errore: ' + e.message);
+  }
+}
+
 auth.onAuthStateChanged(async (user) => {
   if (user) {
     currentUser = user;
@@ -1368,7 +1518,7 @@ function switchScheduleTab(type, btn) {
   document.getElementById('schedule-form-area').innerHTML = `
     <div class="empty-state">
       <div class="empty-icon">📆</div>
-      <h3>Seleziona collaboratrice e periodo</h3>
+      <h3>Seleziona collaboratore e periodo</h3>
       <p>Poi potrai inserire le ore per ogni giorno</p>
     </div>`;
 }
@@ -1378,7 +1528,7 @@ function switchScheduleTab(type, btn) {
 // ─────────────────────────────────────────────────────
 async function loadDashboard() {
   // Stats workers
-  const workersSnap = await db.collection('users').where('ruolo_app','==','worker').get();
+  const workersSnap = await db.collection('users').where('adminId','==',currentUser.uid).where('attiva','==',true).get();
   document.getElementById('stat-workers').textContent = workersSnap.size;
 
   // Ore mese corrente
@@ -1402,7 +1552,7 @@ async function loadDashboard() {
   // Stato settimana
   const listEl = document.getElementById('dashboard-list');
   if (workersSnap.empty) {
-    listEl.innerHTML = `<div class="empty-state"><div class="empty-icon">👥</div><h3>Nessuna collaboratrice</h3><p>Aggiungi collaboratrici dalla sezione apposita</p></div>`;
+    listEl.innerHTML = `<div class="empty-state"><div class="empty-icon">👥</div><h3>Nessuna collaboratore</h3><p>Aggiungi collaboratori dalla sezione apposita</p></div>`;
     return;
   }
 
@@ -1436,7 +1586,7 @@ async function loadDashboard() {
 // COLLABORATRICI
 // ─────────────────────────────────────────────────────
 async function loadWorkersTable() {
-  const snap = await db.collection('users').where('ruolo_app','==','worker').orderBy('cognome').get();
+  const snap = await db.collection('users').where('adminId','==',currentUser.uid).where('attiva','==',true).orderBy('cognome').get();
   allWorkers = snap.docs.map(d => ({ id: d.id, ...d.data() }));
   renderWorkers(allWorkers);
 
@@ -1451,7 +1601,7 @@ async function loadWorkersTable() {
 function renderWorkers(workers) {
   const tbody = document.getElementById('workers-tbody');
   if (!workers.length) {
-    tbody.innerHTML = '<tr><td colspan="5"><div class="empty-state" style="padding:40px"><div class="empty-icon">👥</div><h3>Nessuna collaboratrice</h3><p>Aggiungi la prima collaboratrice</p></div></td></tr>';
+    tbody.innerHTML = '<tr><td colspan="5"><div class="empty-state" style="padding:40px"><div class="empty-icon">👥</div><h3>Nessuna collaboratore</h3><p>Aggiungi la prima collaboratore</p></div></td></tr>';
     return;
   }
   tbody.innerHTML = workers.map(w => {
@@ -1494,27 +1644,35 @@ async function addWorker() {
   if (pw.length < 6) { showToast('La password deve essere di almeno 6 caratteri', 'error'); return; }
 
   try {
-    // Crea utente Firebase Auth usando Cloud Function (chiamata REST)
-    // Qui usiamo la Cloud Function che deve essere deployata
-    const resp = await fetch('https://us-central1-' + firebaseConfig.projectId + '.cloudfunctions.net/createWorker', {
+    // Usa Firebase Auth REST API per creare l'utente senza Cloud Functions
+    const apiKey = firebaseConfig.apiKey;
+    const resp = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=${apiKey}`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + await auth.currentUser.getIdToken() },
-      body: JSON.stringify({ email, password: pw, nome, cognome, ruolo })
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password: pw, returnSecureToken: true })
     });
-    if (!resp.ok) throw new Error('Errore creazione utente');
     const data = await resp.json();
+    if (data.error) {
+      if (data.error.message === 'EMAIL_EXISTS') throw new Error('Questa email è già registrata');
+      throw new Error(data.error.message);
+    }
 
-    // Salva in Firestore
-    await db.collection('users').doc(data.uid).set({
-      nome, cognome, email, ruolo,
+    const newUid = data.localId;
+
+    // Salva profilo in Firestore
+    await db.collection('users').doc(newUid).set({
+      nome, cognome, email,
+      ruolo: ruolo || '',
       ruolo_app: 'worker',
+      attiva: true,
       createdAt: firebase.firestore.FieldValue.serverTimestamp()
     });
 
-    showToast(`${nome} ${cognome} aggiunta con successo!`, 'success');
+    showToast(`${nome} ${cognome} aggiunto con successo! ✓`, 'success');
     closeModal('modal-add-worker');
     clearAddWorkerForm();
     loadWorkersTable();
+    loadDashboard();
   } catch(e) {
     console.error(e);
     showToast('Errore: ' + e.message, 'error');
@@ -1528,11 +1686,12 @@ function clearAddWorkerForm() {
 }
 
 async function deleteWorker(uid, name) {
-  if (!confirm(`Sei sicura di voler rimuovere ${name}?`)) return;
+  if (!confirm(`Sei sicuro di voler rimuovere ${name}?`)) return;
   try {
-    await db.collection('users').doc(uid).update({ ruolo: 'worker_inactive', attiva: false });
-    showToast(`${name} rimossa`, 'success');
+    await db.collection('users').doc(uid).update({ ruolo_app: 'worker_inactive', attiva: false });
+    showToast(`${name} rimosso`, 'success');
     loadWorkersTable();
+    loadDashboard();
   } catch(e) {
     showToast('Errore durante la rimozione', 'error');
   }
@@ -1557,7 +1716,7 @@ async function renderScheduleForm() {
   const area = document.getElementById('schedule-form-area');
 
   if (!workerId || !period) {
-    area.innerHTML = `<div class="empty-state"><div class="empty-icon">📆</div><h3>Seleziona collaboratrice e periodo</h3><p>Poi potrai inserire le ore per ogni giorno</p></div>`;
+    area.innerHTML = `<div class="empty-state"><div class="empty-icon">📆</div><h3>Seleziona collaboratore e periodo</h3><p>Poi potrai inserire le ore per ogni giorno</p></div>`;
     return;
   }
 
@@ -1665,7 +1824,7 @@ async function loadRiepilogo() {
 
   const workers = allWorkers.filter(w => w.ruolo_app !== 'worker_inactive');
   if (!workers.length) {
-    content.innerHTML = '<div class="empty-state"><div class="empty-icon">👥</div><h3>Nessuna collaboratrice</h3></div>';
+    content.innerHTML = '<div class="empty-state"><div class="empty-icon">👥</div><h3>Nessuna collaboratore</h3></div>';
     return;
   }
 
@@ -1678,7 +1837,7 @@ async function loadRiepilogo() {
   });
 
   let html = '<div style="overflow-x:auto"><table style="min-width:600px">';
-  html += '<thead><tr><th style="min-width:160px">Collaboratrice</th><th>Ore previste</th><th>Ore effettive</th><th>Differenza</th><th>Pendenti</th></tr></thead><tbody>';
+  html += '<thead><tr><th style="min-width:160px">Collaboratore</th><th>Ore previste</th><th>Ore effettive</th><th>Differenza</th><th>Pendenti</th></tr></thead><tbody>';
 
   workers.forEach(w => {
     const tsList = tsMap[w.id] || [];
@@ -1727,7 +1886,7 @@ async function exportExcel() {
   // Dettaglio giornaliero
   rows.push([]);
   rows.push(['DETTAGLIO GIORNALIERO']);
-  rows.push(['Collaboratrice', 'Data', 'Ore Previste', 'Ore Effettive', 'Confermato', 'Tipo giustificativo', 'Protocollo malattia', 'Note']);
+  rows.push(['Collaboratore', 'Data', 'Ore Previste', 'Ore Effettive', 'Confermato', 'Tipo giustificativo', 'Protocollo malattia', 'Note']);
   workers.forEach(w => {
     const tsList = (tsMap[w.id]||[]).sort((a,b)=>a.data.localeCompare(b.data));
     tsList.forEach(t => {
@@ -1771,7 +1930,7 @@ async function loadWorkerWeek() {
   const endDay = days[days.length-1];
   const fmt = d => `${d.getDate()}/${d.getMonth()+1}`;
   document.getElementById('worker-week-label').textContent = `${fmt(startDay)} — ${fmt(endDay)} ${endDay.getFullYear()}`;
-  document.getElementById('worker-subtitle').textContent = `Settimana ${weekStr}`;
+  document.getElementById('worker-subtitle').textContent = `Settimana in corso`;
 
   const listEl = document.getElementById('worker-days-list');
   listEl.innerHTML = '<div class="loading-spinner"></div>';
@@ -1799,7 +1958,7 @@ async function loadWorkerWeek() {
     <div class="empty-state">
       <div class="empty-icon">📭</div>
       <h3>Nessun orario ricevuto</h3>
-      <p>La responsabile non ha ancora inviato gli orari per questa settimana</p>
+      <p>Non hai ancora ricevuto gli orari per questa settimana</p>
     </div>`;
     return;
   }
