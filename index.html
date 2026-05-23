@@ -1440,7 +1440,16 @@ async function doRegister() {
       createdAt: firebase.firestore.FieldValue.serverTimestamp()
     });
 
-    // onAuthStateChanged gestirà il redirect automatico
+    // Documento salvato — forza reload del profilo
+    currentUserData = {
+      nome, cognome, email,
+      ruolo: qualifica || 'Collaboratore',
+      ruolo_app: 'worker',
+      adminId: adminId,
+      attiva: true
+    };
+    currentUser = cred.user;
+    initApp();
 
   } catch(e) {
     btn.disabled = false;
