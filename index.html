@@ -1243,10 +1243,7 @@
       <label>Email</label>
       <input type="email" id="worker-email" placeholder="es. mario.rossi@email.com">
     </div>
-    <div class="form-group">
-      <label>Password temporanea</label>
-      <input type="text" id="worker-password" placeholder="Min. 6 caratteri">
-    </div>
+
     <div class="form-group">
       <label>Ruolo / Qualifica</label>
       <input type="text" id="worker-ruolo" placeholder="Es. Cuoco, Addetto, ecc.">
@@ -1403,6 +1400,20 @@ async function doRegister() {
     const cred = await auth.createUserWithEmailAndPassword(email, pw);
     const uid = cred.user.uid;
 
+    // Controlla se esiste già un documento pre-registrato con questa email
+    const preSnap = await db.collection('users')
+      .where('email', '==', email)
+      .where('adminId', '==', adminId)
+      .where('preRegistrato', '==', true)
+      .get();
+
+    if (!preSnap.empty) {
+      // Aggiorna il documento esistente con l'UID reale
+      const preDoc = preSnap.docs[0];
+      await db.collection('users').doc(preDoc.id).delete();
+    }
+
+    // Crea documento definitivo con UID Firebase Auth
     await db.collection('users').doc(uid).set({
       nome,
       cognome,
@@ -1411,6 +1422,7 @@ async function doRegister() {
       ruolo_app: 'worker',
       adminId: adminId,
       attiva: true,
+      preRegistrato: false,
       createdAt: firebase.firestore.FieldValue.serverTimestamp()
     });
 
@@ -1606,6 +1618,7 @@ function renderWorkers(workers) {
   }
   tbody.innerHTML = workers.map(w => {
     const initials = (w.nome?.[0]||'') + (w.cognome?.[0]||'');
+    const isPre = w.preRegistrato === true;
     return `
     <tr>
       <td>
@@ -1613,14 +1626,15 @@ function renderWorkers(workers) {
           <div class="avatar avatar-sm">${initials}</div>
           <div>
             <div class="worker-name">${w.nome} ${w.cognome}</div>
+            ${isPre ? '<div style="font-size:11px;color:var(--amber)">In attesa di registrazione</div>' : ''}
           </div>
         </div>
       </td>
       <td>${w.email}</td>
       <td>${w.ruolo||'—'}</td>
-      <td><span class="badge badge-green">Attiva</span></td>
+      <td><span class="badge ${isPre ? 'badge-amber' : 'badge-green'}">${isPre ? '⏳ In attesa' : '✓ Attivo'}</span></td>
       <td style="text-align:right">
-        <button class="btn-icon danger" onclick="deleteWorker('${w.id}','${w.nome} ${w.cognome}')" title="Rimuovi">🗑</button>
+        <button class="btn-icon danger" onclick="deleteWorker('${w.id}','${w.nome} ${w.cognome}')" title="Elimina">🗑</button>
       </td>
     </tr>`;
   }).join('');
@@ -1637,38 +1651,36 @@ async function addWorker() {
   const nome = document.getElementById('worker-nome').value.trim();
   const cognome = document.getElementById('worker-cognome').value.trim();
   const email = document.getElementById('worker-email').value.trim();
-  const pw = document.getElementById('worker-password').value.trim();
   const ruolo = document.getElementById('worker-ruolo').value.trim();
 
-  if (!nome || !cognome || !email || !pw) { showToast('Compila tutti i campi obbligatori', 'error'); return; }
-  if (pw.length < 6) { showToast('La password deve essere di almeno 6 caratteri', 'error'); return; }
+  if (!nome || !cognome || !email) { showToast('Compila nome, cognome ed email', 'error'); return; }
 
   try {
-    // Usa Firebase Auth REST API per creare l'utente senza Cloud Functions
-    const apiKey = firebaseConfig.apiKey;
-    const resp = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=${apiKey}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password: pw, returnSecureToken: true })
-    });
-    const data = await resp.json();
-    if (data.error) {
-      if (data.error.message === 'EMAIL_EXISTS') throw new Error('Questa email è già registrata');
-      throw new Error(data.error.message);
+    // Controlla se esiste già un documento con questa email
+    const existing = await db.collection('users')
+      .where('email', '==', email)
+      .where('adminId', '==', currentUser.uid)
+      .get();
+
+    if (!existing.empty) {
+      showToast('Esiste già un collaboratore con questa email', 'error');
+      return;
     }
 
-    const newUid = data.localId;
-
-    // Salva profilo in Firestore
-    await db.collection('users').doc(newUid).set({
+    // Crea documento anagrafica in Firestore (senza account Firebase Auth)
+    // Quando il collaboratore si registra con il codice invito, il doc viene aggiornato
+    const docRef = db.collection('users').doc();
+    await docRef.set({
       nome, cognome, email,
-      ruolo: ruolo || '',
+      ruolo: ruolo || 'Collaboratore',
       ruolo_app: 'worker',
+      adminId: currentUser.uid,
       attiva: true,
+      preRegistrato: true,
       createdAt: firebase.firestore.FieldValue.serverTimestamp()
     });
 
-    showToast(`${nome} ${cognome} aggiunto con successo! ✓`, 'success');
+    showToast(`${nome} ${cognome} aggiunto! Può ora registrarsi con il codice invito. ✓`, 'success');
     closeModal('modal-add-worker');
     clearAddWorkerForm();
     loadWorkersTable();
@@ -1680,20 +1692,37 @@ async function addWorker() {
 }
 
 function clearAddWorkerForm() {
-  ['worker-nome','worker-cognome','worker-email','worker-password','worker-ruolo'].forEach(id => {
+  ['worker-nome','worker-cognome','worker-email','worker-ruolo'].forEach(id => {
     document.getElementById(id).value = '';
   });
 }
 
 async function deleteWorker(uid, name) {
-  if (!confirm(`Sei sicuro di voler rimuovere ${name}?`)) return;
+  if (!confirm(`Sei sicuro di voler rimuovere definitivamente ${name}? Questa azione non può essere annullata.`)) return;
   try {
-    await db.collection('users').doc(uid).update({ ruolo_app: 'worker_inactive', attiva: false });
-    showToast(`${name} rimosso`, 'success');
+    // Elimina documento da Firestore
+    await db.collection('users').doc(uid).delete();
+
+    // Disabilita account Firebase Auth tramite REST API (se ha un account)
+    try {
+      const apiKey = firebaseConfig.apiKey;
+      const token = await auth.currentUser.getIdToken();
+      await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:delete?key=${apiKey}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ idToken: token })
+      });
+    } catch(authErr) {
+      // Se non ha ancora un account Auth, ignora l'errore
+      console.warn('Nessun account Auth da eliminare:', authErr);
+    }
+
+    showToast(`${name} eliminato definitivamente`, 'success');
     loadWorkersTable();
     loadDashboard();
   } catch(e) {
-    showToast('Errore durante la rimozione', 'error');
+    console.error(e);
+    showToast('Errore durante l'eliminazione', 'error');
   }
 }
 
