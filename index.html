@@ -389,9 +389,9 @@ tr:hover td{background:var(--cream);}
       <!-- RIEPILOGO -->
       <div id="page-riepilogo" class="page">
         <div class="page-header"><h2>Riepilogo</h2><p>Ore richieste vs effettive per collaboratore</p></div>
-        <div class="tab-bar">
-          <button class="tab-btn active" onclick="switchRiepilogoTab('mese',this)">Mensile</button>
-          <button class="tab-btn" onclick="switchRiepilogoTab('settimana',this)">Settimanale</button>
+        <div class="tab-bar" id="riepilogo-tab-bar">
+          <button class="tab-btn active" id="rtab-mese" onclick="switchRiepilogoTab('mese')">Mensile</button>
+          <button class="tab-btn" id="rtab-settimana" onclick="switchRiepilogoTab('settimana')">Settimanale</button>
         </div>
         <div class="actions-bar">
           <div class="actions-left">
