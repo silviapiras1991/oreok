@@ -709,6 +709,13 @@ function showPage(pageId) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.sidebar-item').forEach(b => b.classList.toggle('active', b.dataset.page === pageId));
   document.getElementById('page-' + pageId).classList.add('active');
+  // Ricarica riepilogo se si torna su quella pagina
+  if (pageId === 'riepilogo') {
+    const periodo = riepilogoTab === 'mese'
+      ? document.getElementById('riepilogo-month').value
+      : document.getElementById('riepilogo-week').value;
+    if (periodo) loadRiepilogo();
+  }
 }
 
 // ── DASHBOARD ──
