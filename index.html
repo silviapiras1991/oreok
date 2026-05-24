@@ -392,16 +392,11 @@ tr:hover td{background:var(--cream);}
       <!-- RIEPILOGO -->
       <div id="page-riepilogo" class="page">
         <div class="page-header"><h2>Riepilogo</h2><p>Ore richieste vs effettive per collaboratore</p></div>
-        <div class="tab-bar" id="riepilogo-tab-bar">
-          <button class="tab-btn active" id="rtab-mese" onclick="switchRiepilogoTab('mese')">Mensile</button>
-          <button class="tab-btn" id="rtab-settimana" onclick="switchRiepilogoTab('settimana')">Settimanale</button>
-        </div>
         <div class="actions-bar">
           <div class="actions-left">
             <input type="month" id="riepilogo-month" class="ore-input" style="padding:8px 12px;" onchange="loadRiepilogo()">
-            <input type="week" id="riepilogo-week" class="ore-input" style="padding:8px 12px;display:none;" onchange="loadRiepilogo()">
           </div>
-          <button class="btn btn-green" id="btn-export-excel" onclick="exportExcel()">⬇ Esporta Excel</button>
+          <button class="btn btn-green" onclick="exportExcel()">⬇ Esporta Excel</button>
         </div>
         <div id="riepilogo-content">
           <div class="empty-state"><div class="empty-icon">📊</div><h3>Seleziona un periodo</h3></div>
@@ -1355,9 +1350,7 @@ function initRiepilogoPage() {
 }
 
 async function loadRiepilogo() {
-  const periodo = riepilogoTab === 'mese'
-    ? document.getElementById('riepilogo-month').value
-    : document.getElementById('riepilogo-week').value;
+  const periodo = document.getElementById('riepilogo-month').value;
   if (!periodo) return;
 
   const contentEl = document.getElementById('riepilogo-content');
@@ -1369,18 +1362,14 @@ async function loadRiepilogo() {
     return;
   }
 
-  const days = riepilogoTab === 'mese' ? getDaysOfMonth(periodo) : getDaysOfWeek(periodo);
+  const days = getDaysOfMonth(periodo);
   const GIORNI_MINI = ['Lu','Ma','Me','Gi','Ve','Sa','Do'];
 
   // Carica timesheets per ogni worker
   const tsMap = {};
   for (const w of workers) {
     let snap;
-    if (riepilogoTab === 'mese') {
-      snap = await db.collection('timesheets').where('workerId','==',w.id).where('mese','==',periodo).get();
-    } else {
-      snap = await db.collection('timesheets').where('workerId','==',w.id).where('settimana','==',periodo).get();
-    }
+    snap = await db.collection('timesheets').where('workerId','==',w.id).where('mese','==',periodo).get();
     const byDay = {};
     snap.docs.forEach(d => { byDay[d.data().data] = d.data(); });
     tsMap[w.id] = byDay;
