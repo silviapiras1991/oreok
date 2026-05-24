@@ -804,13 +804,13 @@ async function loadDashboard() {
 // ── COLLABORATORI ──
 async function loadWorkersTable() {
   const snap = await db.collection('users').where('adminId','==',currentUser.uid).get();
-  allWorkers = snap.docs.map(d => ({id:d.id,...d.data()})).sort((a,b)=>a.cognome.localeCompare(b.cognome));
+  allWorkers = snap.docs.map(d => ({id:d.id,...d.data()})).sort((a,b)=>(a.cognome||'').localeCompare(b.cognome||''));
   renderWorkers(allWorkers);
-  const sel = document.getElementById('schedule-worker-select');
-  sel.innerHTML = '<option value="">— Seleziona —</option>';
-  allWorkers.filter(w=>!w.preRegistrato).forEach(w => {
-    sel.innerHTML += `<option value="${w.id}">${w.nome} ${w.cognome}</option>`;
-  });
+  // Ricarica griglia se siamo in invia orari
+  const period = document.getElementById('schedule-period')?.value;
+  if (period && document.getElementById('page-invia-orari')?.classList.contains('active')) {
+    renderScheduleGrid();
+  }
 }
 
 function renderWorkers(workers) {
@@ -887,8 +887,8 @@ async function deleteWorker(uid, name) {
 let allStrutture = [];
 
 async function loadStrutture() {
-  const snap = await db.collection('strutture').where('adminId','==',currentUser.uid).orderBy('nome').get();
-  allStrutture = snap.docs.map(d => ({id:d.id,...d.data()}));
+  const snap = await db.collection('strutture').where('adminId','==',currentUser.uid).get();
+  allStrutture = snap.docs.map(d => ({id:d.id,...d.data()})).sort((a,b)=>a.nome.localeCompare(b.nome));
   renderStrutture();
   updateStruttureSelects();
 }
