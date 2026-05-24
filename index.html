@@ -1305,14 +1305,17 @@ async function renderScheduleGrid() {
   // Carica schedule esistenti e stato conferme per tutti i worker
   const existingMap = {};
   const confermateMap = {};
+  const days0 = scheduleType === 'month' ? getDaysOfMonth(period) : getDaysOfWeek(period);
+  const meseRef = days0[0].toISOString().split('T')[0].substring(0,7);
+
   for (const w of workers) {
     const schedId = w.id+'_'+period.replace(/[^a-zA-Z0-9]/g,'_');
     const doc = await db.collection('schedules').doc(schedId).get();
     existingMap[w.id] = doc.exists ? doc.data() : null;
-    // Carica giorni già confermati
+    // Carica giorni confermati usando il mese (più affidabile della settimana)
     const tsSnap = await db.collection('timesheets')
       .where('workerId','==',w.id)
-      .where('settimana','==', scheduleType === 'week' ? period : period)
+      .where('mese','==',meseRef)
       .get();
     const confermati = {};
     tsSnap.docs.forEach(d => {
@@ -1512,16 +1515,20 @@ function confermaCopiaSettimana() {
 
 // copiaSettimanaGriglia rimossa - ora si usa modal per collaboratore
 
-function raccogliOreWorker(workerId, days) {
+function raccogliOreWorker(workerId, days, soloModificati=false) {
   const giorni = {};
   const strutture = {};
+
   days.forEach(day => {
     const dayKey = day.toISOString().split('T')[0];
     const inp = document.querySelector(`.grid-ore-input[data-worker="${workerId}"][data-day="${dayKey}"]`);
-    if (inp && inp.value !== '') {
-      giorni[dayKey] = parseFloat(inp.value);
-    }
+    if (!inp) return; // cella bloccata (confermata)
+    if (inp.value === '') return;
+    // Se soloModificati, prendi solo le celle con data-modified='1'
+    if (soloModificati && inp.dataset.modified !== '1') return;
+    giorni[dayKey] = parseFloat(inp.value);
   });
+
   const strSel = document.querySelector(`.grid-struttura-select[data-worker="${workerId}"]`);
   if (strSel && strSel.value) {
     days.forEach(day => {
@@ -1604,7 +1611,14 @@ async function inviaSingolo(workerId) {
   if (!w) { showToast('Collaboratore non trovato', 'error'); return; }
 
   const days = scheduleType === 'month' ? getDaysOfMonth(period) : getDaysOfWeek(period);
-  const {giorni, strutture} = raccogliOreWorker(workerId, days);
+  // Prima prova solo celle modificate, se nessuna prende tutte le non confermate
+  let {giorni, strutture} = raccogliOreWorker(workerId, days, true);
+  const soloMod = Object.keys(giorni).length > 0;
+  if (!soloMod) {
+    const tutto = raccogliOreWorker(workerId, days, false);
+    giorni = tutto.giorni;
+    strutture = tutto.strutture;
+  }
 
   if (!Object.keys(giorni).length) {
     showToast('Inserisci almeno un ora per ' + w.nome, 'error');
@@ -1617,9 +1631,12 @@ async function inviaSingolo(workerId) {
   try {
     const inviati = await inviaOreWorker(workerId, period, giorni, strutture);
     if (inviati === 0) {
-      showToast(w.nome + ' ' + w.cognome + ' — tutte le giornate sono gia confermate ✓', 'success');
+      showToast(w.nome + ' ' + w.cognome + ' — nessuna modifica da inviare ✓', 'success');
     } else {
-      showToast('✅ Orari inviati a ' + w.nome + ' ' + w.cognome + '! (' + inviati + ' giorni)', 'success');
+      const msg = soloMod
+        ? '✅ ' + inviati + ' ' + (inviati===1?'giorno modificato':'giorni modificati') + ' inviati a ' + w.nome + ' ' + w.cognome
+        : '✅ Orari inviati a ' + w.nome + ' ' + w.cognome + ' (' + inviati + ' giorni)';
+      showToast(msg, 'success');
     }
     loadDashboard();
     renderScheduleGrid();
