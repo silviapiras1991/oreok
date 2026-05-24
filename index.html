@@ -1594,7 +1594,7 @@ async function eliminaMese() {
 
   } catch(e) {
     console.error(e);
-    showToast('Errore durante l'eliminazione: ' + e.message, 'error');
+    showToast("Errore durante l'eliminazione: " + e.message, "error");
   } finally {
     btn.disabled = false;
     btn.textContent = '🗑 Elimina mese';
