@@ -322,6 +322,7 @@ tr:hover td{background:var(--cream);}
       <button class="sidebar-item" onclick="showPage('riepilogo')" data-page="riepilogo"><span class="icon">📋</span><span>Riepilogo</span></button>
       <div class="sidebar-label">Impostazioni</div>
       <button class="sidebar-item" onclick="showPage('strutture')" data-page="strutture"><span class="icon">🏢</span><span>Strutture</span></button>
+      <button class="sidebar-item" onclick="showPage('profilo')" data-page="profilo"><span class="icon">⚙️</span><span>Profilo</span></button>
     </aside>
 
     <!-- SIDEBAR WORKER -->
@@ -425,6 +426,42 @@ tr:hover td{background:var(--cream);}
               <thead><tr><th>Nome struttura</th><th></th></tr></thead>
               <tbody id="strutture-tbody"><tr><td colspan="2"><div class="loading-spinner"></div></td></tr></tbody>
             </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- PROFILO RESPONSABILE -->
+      <div id="page-profilo" class="page">
+        <div class="page-header"><h2>Il mio profilo</h2><p>Informazioni del tuo account</p></div>
+        <div class="card" style="max-width:500px;">
+          <div class="card-title">Codice invito collaboratori</div>
+          <p style="font-size:14px;color:var(--text-muted);margin-bottom:16px;">
+            Condividi questo codice con i tuoi collaboratori. Dovranno inserirlo durante la registrazione insieme alla loro email.
+          </p>
+          <div style="display:flex;align-items:center;gap:12px;background:var(--cream);border:2px solid var(--accent);border-radius:var(--radius-sm);padding:14px 18px;">
+            <span id="profilo-codice" style="font-family:monospace;font-size:22px;font-weight:700;color:var(--accent);letter-spacing:2px;flex:1;">—</span>
+            <button class="btn btn-outline btn-sm" onclick="copiaCodice()" id="btn-copia-codice">📋 Copia</button>
+          </div>
+          <p style="font-size:12px;color:var(--text-muted);margin-top:10px;">
+            Puoi condividerlo via WhatsApp, email o come preferisci insieme al link:<br>
+            <code style="font-size:12px;">https://silviapiras1991.github.io/oreok/</code>
+          </p>
+        </div>
+        <div class="card" style="max-width:500px;">
+          <div class="card-title">Dati account</div>
+          <div style="display:flex;flex-direction:column;gap:12px;">
+            <div style="display:flex;justify-content:space-between;font-size:14px;">
+              <span style="color:var(--text-muted);">Nome</span>
+              <strong id="profilo-nome">—</strong>
+            </div>
+            <div style="display:flex;justify-content:space-between;font-size:14px;">
+              <span style="color:var(--text-muted);">Email</span>
+              <strong id="profilo-email">—</strong>
+            </div>
+            <div style="display:flex;justify-content:space-between;font-size:14px;">
+              <span style="color:var(--text-muted);">Ruolo</span>
+              <strong>Responsabile</strong>
+            </div>
           </div>
         </div>
       </div>
@@ -801,6 +838,10 @@ function showPage(pageId) {
   if (pageId === 'strutture') {
     renderStrutture();
   }
+
+  if (pageId === 'profilo') {
+    loadProfilo();
+  }
 }
 
 // ── DASHBOARD ──
@@ -914,6 +955,31 @@ async function deleteWorker(uid, name) {
   }
 }
 
+
+// ── PROFILO ──
+async function loadProfilo() {
+  const doc = await db.collection('users').doc(currentUser.uid).get();
+  const data = doc.data();
+  document.getElementById('profilo-nome').textContent = (data.nome||'') + ' ' + (data.cognome||'');
+  document.getElementById('profilo-email').textContent = data.email || currentUser.email || '—';
+  document.getElementById('profilo-codice').textContent = data.codiceInvito || '—';
+}
+
+function copiaCodice() {
+  const codice = document.getElementById('profilo-codice').textContent;
+  if (!codice || codice === '—') return;
+  navigator.clipboard.writeText(codice).then(() => {
+    const btn = document.getElementById('btn-copia-codice');
+    btn.textContent = '✓ Copiato!';
+    btn.style.color = 'var(--green)';
+    btn.style.borderColor = 'var(--green)';
+    setTimeout(() => {
+      btn.textContent = '📋 Copia';
+      btn.style.color = '';
+      btn.style.borderColor = '';
+    }, 2000);
+  });
+}
 
 // ── STRUTTURE ──
 let allStrutture = [];
