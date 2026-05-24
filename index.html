@@ -1369,129 +1369,120 @@ async function loadRiepilogo() {
     return;
   }
 
-  let html = '';
+  const days = riepilogoTab === 'mese' ? getDaysOfMonth(periodo) : getDaysOfWeek(periodo);
+  const GIORNI_MINI = ['Lu','Ma','Me','Gi','Ve','Sa','Do'];
 
+  // Carica timesheets per ogni worker
+  const tsMap = {};
   for (const w of workers) {
-    // Query separata per worker
     let snap;
     if (riepilogoTab === 'mese') {
       snap = await db.collection('timesheets').where('workerId','==',w.id).where('mese','==',periodo).get();
     } else {
       snap = await db.collection('timesheets').where('workerId','==',w.id).where('settimana','==',periodo).get();
     }
-
-    let tsAll = snap.docs.map(d => d.data()).sort((a,b) => a.data.localeCompare(b.data));
-
-    // Per la vista settimanale, mostra tutti i 7 giorni anche se senza orari
-    if (riepilogoTab === 'settimana') {
-      const days = getDaysOfWeek(periodo);
-      const existingDays = new Set(tsAll.map(t => t.data));
-      days.forEach(day => {
-        const dayKey = day.toISOString().split('T')[0];
-        if (!existingDays.has(dayKey)) {
-          tsAll.push({ data: dayKey, workerId: w.id, oreRichieste: null, confermato: false, giornoLibero: false, nessunOrario: true });
-        }
-      });
-      tsAll.sort((a,b) => a.data.localeCompare(b.data));
-    }
-    const tsList = tsAll.filter(t => !t.giornoLibero);
-    const totPrev = tsList.reduce((s,t) => s+(t.oreRichieste||0), 0);
-    const totEff = tsList.filter(t => t.confermato).reduce((s,t) => s+(t.oreEffettive??t.oreRichieste??0), 0);
-    const pendenti = tsList.filter(t => !t.confermato).length;
-    const diff = totEff - totPrev;
-    const dc = diff>0?'pos':diff<0?'neg':'zero';
-    const initials = (w.nome?.[0]||'')+(w.cognome?.[0]||'');
-
-    html += `<div class="card" style="margin-bottom:16px;">
-      <!-- HEADER COLLABORATORE -->
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px;padding-bottom:16px;border-bottom:1px solid var(--border);">
-        <div class="worker-info">
-          <div class="avatar">${initials}</div>
-          <div>
-            <div style="font-weight:500;font-size:16px;">${w.nome} ${w.cognome}</div>
-            <div style="font-size:12px;color:var(--text-muted)">${w.ruolo||''}</div>
-          </div>
-        </div>
-        <div style="display:flex;gap:20px;align-items:center;flex-wrap:wrap;">
-          <div style="text-align:center;">
-            <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:2px;">Previste</div>
-            <div style="font-family:'Fraunces',serif;font-size:24px;font-weight:300;">${totPrev.toFixed(1)}<span style="font-size:14px">h</span></div>
-          </div>
-          <div style="text-align:center;">
-            <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:2px;">Effettive</div>
-            <div style="font-family:'Fraunces',serif;font-size:24px;font-weight:300;">${totEff.toFixed(1)}<span style="font-size:14px">h</span></div>
-          </div>
-          <div style="text-align:center;">
-            <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:2px;">Differenza</div>
-            <div style="font-family:'Fraunces',serif;font-size:24px;font-weight:300;" class="ore-diff ${dc}">${diff>=0?'+':''}${diff.toFixed(1)}<span style="font-size:14px">h</span></div>
-          </div>
-          ${pendenti > 0
-            ? `<span class="badge badge-amber">⏳ ${pendenti} pendenti</span>`
-            : tsAll.length > 0 ? '<span class="badge badge-green">✓ Tutto confermato</span>' : ''}
-        </div>
-      </div>`;
-
-    if (tsAll.length === 0) {
-      html += `<div style="text-align:center;padding:20px;color:var(--text-muted);font-size:14px;">
-        Nessun orario inviato per questo periodo
-      </div>`;
-    } else {
-      // DETTAGLIO GIORNALIERO
-      html += `<div class="table-container">
-        <table>
-          <thead><tr><th>Giorno</th><th>Previste</th><th>Effettive</th><th>Differenza</th><th>Stato</th><th>Giustificativo</th></tr></thead>
-          <tbody>`;
-
-      tsAll.forEach(t => {
-        const d = new Date(t.data+'T12:00:00');
-        const dn = GIORNI[d.getDay()===0?6:d.getDay()-1];
-        const dateLabel = dn+' '+d.getDate()+'/'+(d.getMonth()+1);
-
-        if (t.nessunOrario) {
-          html += `<tr style="opacity:0.35;">
-            <td style="font-weight:500">${dateLabel}</td>
-            <td colspan="4" style="color:var(--text-muted);font-style:italic;">Nessun orario inviato</td>
-            <td>—</td>
-          </tr>`;
-          return;
-        }
-
-        if (t.giornoLibero) {
-          html += `<tr style="opacity:0.45;">
-            <td style="font-weight:500">${dateLabel}</td>
-            <td>—</td><td>—</td><td>—</td>
-            <td><span class="badge badge-gray">Non assegnato</span></td>
-            <td>—</td>
-          </tr>`;
-          return;
-        }
-
-        const oreEff = t.confermato ? (t.oreEffettive??t.oreRichieste) : null;
-        const diffG = oreEff !== null ? (oreEff - t.oreRichieste) : null;
-        const dcG = diffG !== null ? (diffG>0?'pos':diffG<0?'neg':'zero') : '';
-        const giust = t.giustificativo?.tipo && t.giustificativo.tipo !== 'giorno_libero'
-          ? t.giustificativo.tipo + (t.giustificativo.protocollo ? ' — '+t.giustificativo.protocollo : '')
-          : '—';
-
-        html += `<tr>
-          <td style="font-weight:500">${dateLabel}</td>
-          <td>${t.oreRichieste}h</td>
-          <td>${oreEff !== null ? oreEff+'h' : '<span style="color:var(--text-muted)">—</span>'}</td>
-          <td>${diffG !== null ? '<span class="ore-diff '+dcG+'">'+(diffG>=0?'+':'')+diffG.toFixed(1)+'h</span>' : '<span style="color:var(--text-muted)">—</span>'}</td>
-          <td>${t.confermato
-            ? (diffG !== 0 ? '<span class="badge badge-amber">Variazione</span>' : '<span class="badge badge-green">✓ Esatto</span>')
-            : '<span class="badge badge-amber">⏳ Pendente</span>'
-          }</td>
-          <td style="font-size:13px;color:var(--text-muted)">${giust}</td>
-        </tr>`;
-      });
-
-      html += '</tbody></table></div>';
-    }
-    html += '</div>';
+    const byDay = {};
+    snap.docs.forEach(d => { byDay[d.data().data] = d.data(); });
+    tsMap[w.id] = byDay;
   }
 
-  contentEl.innerHTML = html || '<div class="empty-state"><div class="empty-icon">📊</div><h3>Nessun dato per questo periodo</h3></div>';
+  // Costruisci griglia
+  let html = '<div style="overflow-x:auto;"><table style="min-width:900px;border-collapse:collapse;font-size:13px;">';
+
+  // HEADER giorni
+  html += '<thead>';
+  html += '<tr>';
+  html += '<th style="text-align:left;padding:10px 14px;font-size:12px;font-weight:500;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-muted);background:var(--cream);min-width:180px;position:sticky;left:0;z-index:2;border-bottom:1px solid var(--border);">Collaboratore</th>';
+
+  days.forEach(day => {
+    const isWeekend = day.getDay()===0||day.getDay()===6;
+    const dn = GIORNI_MINI[day.getDay()===0?6:day.getDay()-1];
+    html += `<th style="padding:6px 4px;font-size:11px;font-weight:500;text-transform:uppercase;color:var(--text-muted);background:${isWeekend?'var(--cream-dark)':'var(--cream)'};text-align:center;min-width:68px;border-bottom:1px solid var(--border);">
+      ${dn}<br><span style="font-weight:400;">${day.getDate()}/${day.getMonth()+1}</span>
+    </th>`;
+  });
+
+  html += '<th style="padding:6px 10px;font-size:11px;font-weight:500;text-transform:uppercase;color:var(--text-muted);background:var(--cream);text-align:center;min-width:80px;border-bottom:1px solid var(--border);border-left:2px solid var(--border-strong);">Previste</th>';
+  html += '<th style="padding:6px 10px;font-size:11px;font-weight:500;text-transform:uppercase;color:var(--text-muted);background:var(--cream);text-align:center;min-width:80px;border-bottom:1px solid var(--border);">Effettive</th>';
+  html += '<th style="padding:6px 10px;font-size:11px;font-weight:500;text-transform:uppercase;color:var(--text-muted);background:var(--cream);text-align:center;min-width:80px;border-bottom:1px solid var(--border);">Diff.</th>';
+  html += '</tr>';
+
+  // Sub-header Prev/Eff per ogni giorno
+  html += '<tr>';
+  html += '<th style="background:var(--cream);position:sticky;left:0;z-index:2;border-bottom:2px solid var(--border-strong);"></th>';
+  days.forEach(day => {
+    const isWeekend = day.getDay()===0||day.getDay()===6;
+    html += `<th style="background:${isWeekend?'var(--cream-dark)':'var(--cream)'};border-bottom:2px solid var(--border-strong);padding:3px 2px;">
+      <div style="display:flex;gap:2px;justify-content:center;">
+        <span style="font-size:10px;color:var(--text-muted);font-weight:400;">Prev</span>
+        <span style="font-size:10px;color:var(--text-muted);">|</span>
+        <span style="font-size:10px;color:var(--accent);font-weight:400;">Eff</span>
+      </div>
+    </th>`;
+  });
+  html += '<th style="background:var(--cream);border-bottom:2px solid var(--border-strong);border-left:2px solid var(--border-strong);"></th>';
+  html += '<th style="background:var(--cream);border-bottom:2px solid var(--border-strong);"></th>';
+  html += '<th style="background:var(--cream);border-bottom:2px solid var(--border-strong);"></th>';
+  html += '</tr>';
+  html += '</thead><tbody>';
+
+  // RIGHE collaboratori
+  workers.forEach(w => {
+    const byDay = tsMap[w.id] || {};
+    let totPrev = 0, totEff = 0, hasPending = false;
+    const initials = (w.nome?.[0]||'')+(w.cognome?.[0]||'');
+
+    html += `<tr>`;
+    html += `<td style="padding:8px 14px;border-bottom:1px solid var(--border);position:sticky;left:0;background:white;z-index:1;">
+      <div class="worker-info">
+        <div class="avatar avatar-sm">${initials}</div>
+        <div><div style="font-weight:500;font-size:13px;">${w.nome} ${w.cognome}</div><div style="font-size:11px;color:var(--text-muted)">${w.ruolo||''}</div></div>
+      </div>
+    </td>`;
+
+    days.forEach(day => {
+      const dayKey = day.toISOString().split('T')[0];
+      const isWeekend = day.getDay()===0||day.getDay()===6;
+      const t = byDay[dayKey];
+
+      if (!t) {
+        html += `<td style="padding:6px 4px;border-bottom:1px solid var(--border);text-align:center;background:${isWeekend?'var(--cream-dark)':'white'};color:var(--text-muted);font-size:12px;">—</td>`;
+        return;
+      }
+
+      if (t.giornoLibero) {
+        html += `<td style="padding:6px 4px;border-bottom:1px solid var(--border);text-align:center;background:${isWeekend?'var(--cream-dark)':'var(--cream)'};color:var(--text-muted);font-size:11px;font-style:italic;">N/A</td>`;
+        return;
+      }
+
+      const prev = t.oreRichieste || 0;
+      const eff = t.confermato ? (t.oreEffettive??t.oreRichieste??0) : null;
+      totPrev += prev;
+      if (eff !== null) totEff += eff;
+      else hasPending = true;
+
+      const diff = eff !== null ? eff - prev : null;
+      const cellBg = !t.confermato ? 'var(--amber-light)' : (diff < 0 ? '#FEF2F2' : diff > 0 ? 'var(--amber-light)' : 'var(--green-light)');
+      const effStr = eff !== null ? `<span style="color:var(--accent);font-weight:500;">${eff}h</span>` : `<span style="color:var(--amber);">⏳</span>`;
+
+      html += `<td style="padding:4px 3px;border-bottom:1px solid var(--border);text-align:center;background:${isWeekend?'var(--cream-dark)':cellBg};">
+        <div style="font-size:12px;line-height:1.4;">
+          <div style="color:var(--text-secondary);">${prev}h</div>
+          <div style="border-top:1px solid var(--border);">${effStr}</div>
+        </div>
+      </td>`;
+    });
+
+    const diff = totEff - totPrev;
+    const dc = diff>0?'var(--amber)':diff<0?'#DC2626':'var(--green)';
+    html += `<td style="padding:8px 10px;border-bottom:1px solid var(--border);text-align:center;font-weight:500;border-left:2px solid var(--border-strong);">${totPrev.toFixed(1)}h</td>`;
+    html += `<td style="padding:8px 10px;border-bottom:1px solid var(--border);text-align:center;font-weight:500;">${totEff.toFixed(1)}h</td>`;
+    html += `<td style="padding:8px 10px;border-bottom:1px solid var(--border);text-align:center;font-weight:600;color:${dc};">${diff>=0?'+':''}${diff.toFixed(1)}h${hasPending?' <span style="font-size:10px;color:var(--amber);">⏳</span>':''}</td>`;
+    html += '</tr>';
+  });
+
+  html += '</tbody></table></div>';
+  contentEl.innerHTML = html;
 }
 
 
