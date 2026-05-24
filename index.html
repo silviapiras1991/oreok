@@ -1563,7 +1563,17 @@ async function loadWorkerWeek() {
         <div class="day-card-date">${dateStr}</div>
         <div class="day-card-hours">Ore previste: <strong>${oreReq}h</strong>${confermato?' &nbsp;·&nbsp; Effettive: <strong>'+(oreEff??oreReq)+'h</strong>':''}${data.giustificativo?.tipo?' &nbsp;·&nbsp; <span style="color:var(--amber)">'+data.giustificativo.tipo+'</span>':''}</div>
       </div>
-      <div>${confermato?'<span class="badge badge-green">✓ Confermata</span>':'<button class="btn btn-accent btn-sm" onclick="openConferma(\''+dayKey+'\','+oreReq+',\''+( data.strutturaRichiesta||'')+'\'  )">Conferma</button>'}</div>
+      <div>${(()=>{
+        const oggi = new Date();
+        const oggiStr = oggi.getFullYear()+'-'+String(oggi.getMonth()+1).padStart(2,'0')+'-'+String(oggi.getDate()).padStart(2,'0');
+        const isToday = dayKey === oggiStr;
+        const isPast = dayKey < oggiStr;
+        const canConfirm = isPast || (isToday && oggi.getHours() >= 18);
+        if (confermato) return '<span class="badge badge-green">✓ Confermata</span>';
+        if (canConfirm) return '<button class="btn btn-accent btn-sm" onclick="openConferma(\''+dayKey+'\','+oreReq+',\''+( data.strutturaRichiesta||'')+'\'  )">Conferma</button>';
+        if (isToday) return '<span class="badge badge-gray" style="font-size:11px">Disponibile dalle 18:00</span>';
+        return '<span class="badge badge-gray" style="font-size:11px">Non disponibile</span>';
+      })()}</div>
     </div>`;
   }).join('');
 }
