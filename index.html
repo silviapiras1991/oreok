@@ -21,11 +21,11 @@
   --radius:14px;--radius-sm:8px;--radius-lg:20px;
 }
 *{margin:0;padding:0;box-sizing:border-box;}
-body{font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--text-primary);min-height:100vh;font-size:15px;line-height:1.6;}
+body{font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--text-primary);min-height:100vh;font-size:15px;line-height:1.6;overflow-x:hidden;}
 h1,h2,h3{font-family:'Fraunces',serif;font-weight:500;}
 
 /* NAVBAR */
-.navbar{background:var(--warm-brown);padding:0 24px;height:60px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;}
+.navbar{background:var(--warm-brown);padding:0 24px;height:60px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;width:100%;box-sizing:border-box;}
 .navbar-logo{font-family:'Fraunces',serif;font-size:22px;color:var(--cream);font-weight:600;}
 .navbar-logo span{color:#E8A87C;}
 .navbar-right{display:flex;align-items:center;gap:16px;}
@@ -61,14 +61,14 @@ h1,h2,h3{font-family:'Fraunces',serif;font-weight:500;}
 
 /* APP LAYOUT */
 #app{display:none;}
-.app-layout{display:grid;grid-template-columns:240px 1fr;min-height:calc(100vh - 60px);}
+.app-layout{display:grid;grid-template-columns:240px 1fr;min-height:calc(100vh - 60px);overflow:hidden;width:100%;}
 .sidebar{background:white;border-right:1px solid var(--border);padding:24px 0;position:sticky;top:60px;height:calc(100vh - 60px);overflow-y:auto;}
 .sidebar-label{font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:1px;color:var(--text-muted);padding:0 24px;margin-bottom:6px;margin-top:18px;}
 .sidebar-item{display:flex;align-items:center;gap:10px;padding:9px 16px;margin:0 8px;border-radius:var(--radius-sm);cursor:pointer;font-size:14px;color:var(--text-secondary);font-weight:400;transition:all 0.15s;border:none;background:none;width:calc(100% - 16px);text-align:left;}
 .sidebar-item:hover{background:var(--cream);color:var(--text-primary);}
 .sidebar-item.active{background:var(--accent-light);color:var(--accent);font-weight:500;}
 .sidebar-item .icon{font-size:17px;width:20px;text-align:center;flex-shrink:0;}
-.content{padding:32px;max-width:1100px;}
+.content{padding:32px;min-width:0;overflow-x:hidden;width:100%;}
 .page{display:none;}
 .page.active{display:block;}
 .page-header{margin-bottom:28px;}
@@ -197,6 +197,10 @@ tr:hover td{background:var(--cream);}
 .form-select:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-light);}
 
 /* MOBILE */
+@media(max-width:1200px){
+  .app-layout{grid-template-columns:200px 1fr;}
+  .sidebar-item span:not(.icon){font-size:13px;}
+}
 @media(max-width:768px){
   .app-layout{grid-template-columns:1fr;}
   .sidebar{position:fixed;bottom:0;left:0;right:0;top:auto;height:64px;padding:0;display:flex;flex-direction:row;border-right:none;border-top:1px solid var(--border);overflow:visible;z-index:50;}
@@ -1080,7 +1084,7 @@ async function renderScheduleGrid() {
   // Costruisci griglia
   const GIORNI_MINI = ['Lu','Ma','Me','Gi','Ve','Sa','Do'];
   
-  let html = '<div style="overflow-x:auto;"><table style="min-width:900px;border-collapse:collapse;">';
+  let html = '<div style="overflow-x:auto;width:100%;-webkit-overflow-scrolling:touch;"><table style="border-collapse:collapse;">';
   
   // HEADER
   html += '<thead><tr>';
@@ -1107,10 +1111,13 @@ async function renderScheduleGrid() {
     const strutturaDefault = strutture[Object.keys(strutture)[0]] || '';
 
     html += `<tr data-worker="${w.id}">`;
-    html += `<td style="padding:8px 14px;border-bottom:1px solid var(--border);position:sticky;left:0;background:white;z-index:1;">
-      <div class="worker-info">
-        <div class="avatar avatar-sm">${initials}</div>
-        <div><div style="font-weight:500;font-size:13px;">${w.nome} ${w.cognome}</div><div style="font-size:11px;color:var(--text-muted)">${w.ruolo||''}</div></div>
+    html += `<td style="padding:8px 12px;border-bottom:1px solid var(--border);border-right:1px solid var(--border-strong);position:sticky;left:0;background:white;z-index:1;width:180px;min-width:180px;max-width:180px;">
+      <div style="display:flex;align-items:center;gap:8px;">
+        <div class="avatar avatar-sm" style="flex-shrink:0;">${initials}</div>
+        <div style="min-width:0;">
+          <div style="font-weight:500;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${w.nome} ${w.cognome}</div>
+          <div style="font-size:11px;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${w.ruolo||''}</div>
+        </div>
       </div>
     </td>`;
 
@@ -1376,18 +1383,18 @@ async function loadRiepilogo() {
   }
 
   // Costruisci griglia
-  let html = '<div style="overflow-x:auto;"><table style="min-width:900px;border-collapse:collapse;font-size:13px;">';
+  let html = '<div style="overflow-x:auto;width:100%;-webkit-overflow-scrolling:touch;"><table style="border-collapse:collapse;font-size:13px;">';
 
   // HEADER giorni
   html += '<thead>';
   html += '<tr>';
-  html += '<th style="text-align:left;padding:10px 14px;font-size:12px;font-weight:500;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-muted);background:var(--cream);min-width:180px;position:sticky;left:0;z-index:2;border-bottom:1px solid var(--border);">Collaboratore</th>';
+  html += '<th style="text-align:left;padding:10px 14px;font-size:12px;font-weight:500;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-muted);background:var(--cream);width:180px;min-width:180px;max-width:180px;position:sticky;left:0;z-index:2;border-bottom:1px solid var(--border);border-right:1px solid var(--border-strong);">Collaboratore</th>';
 
   days.forEach(day => {
     const isWeekend = day.getDay()===0||day.getDay()===6;
     const dn = GIORNI_MINI[day.getDay()===0?6:day.getDay()-1];
-    html += `<th style="padding:6px 4px;font-size:11px;font-weight:500;text-transform:uppercase;color:var(--text-muted);background:${isWeekend?'var(--cream-dark)':'var(--cream)'};text-align:center;min-width:68px;border-bottom:1px solid var(--border);">
-      ${dn}<br><span style="font-weight:400;">${day.getDate()}/${day.getMonth()+1}</span>
+    html += `<th style="padding:6px 3px;font-size:11px;font-weight:600;color:var(--text-secondary);background:${isWeekend?'var(--cream-dark)':'var(--cream)'};text-align:center;width:52px;min-width:52px;border-bottom:1px solid var(--border);">
+      ${dn}<br><span style="font-weight:400;font-size:11px;color:var(--text-muted);">${day.getDate()}/${day.getMonth()+1}</span>
     </th>`;
   });
 
@@ -1401,13 +1408,7 @@ async function loadRiepilogo() {
   html += '<th style="background:var(--cream);position:sticky;left:0;z-index:2;border-bottom:2px solid var(--border-strong);"></th>';
   days.forEach(day => {
     const isWeekend = day.getDay()===0||day.getDay()===6;
-    html += `<th style="background:${isWeekend?'var(--cream-dark)':'var(--cream)'};border-bottom:2px solid var(--border-strong);padding:3px 2px;">
-      <div style="display:flex;gap:2px;justify-content:center;">
-        <span style="font-size:10px;color:var(--text-muted);font-weight:400;">Prev</span>
-        <span style="font-size:10px;color:var(--text-muted);">|</span>
-        <span style="font-size:10px;color:var(--accent);font-weight:400;">Eff</span>
-      </div>
-    </th>`;
+    html += `<th style="background:${isWeekend?'var(--cream-dark)':'var(--cream)'};border-bottom:2px solid var(--border-strong);padding:2px 1px;font-size:9px;color:var(--text-muted);text-align:center;">P|E</th>`;
   });
   html += '<th style="background:var(--cream);border-bottom:2px solid var(--border-strong);border-left:2px solid var(--border-strong);"></th>';
   html += '<th style="background:var(--cream);border-bottom:2px solid var(--border-strong);"></th>';
@@ -1422,10 +1423,13 @@ async function loadRiepilogo() {
     const initials = (w.nome?.[0]||'')+(w.cognome?.[0]||'');
 
     html += `<tr>`;
-    html += `<td style="padding:8px 14px;border-bottom:1px solid var(--border);position:sticky;left:0;background:white;z-index:1;">
-      <div class="worker-info">
-        <div class="avatar avatar-sm">${initials}</div>
-        <div><div style="font-weight:500;font-size:13px;">${w.nome} ${w.cognome}</div><div style="font-size:11px;color:var(--text-muted)">${w.ruolo||''}</div></div>
+    html += `<td style="padding:8px 12px;border-bottom:1px solid var(--border);border-right:1px solid var(--border-strong);position:sticky;left:0;background:white;z-index:1;width:180px;min-width:180px;max-width:180px;">
+      <div style="display:flex;align-items:center;gap:8px;">
+        <div class="avatar avatar-sm" style="flex-shrink:0;">${initials}</div>
+        <div style="min-width:0;">
+          <div style="font-weight:500;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${w.nome} ${w.cognome}</div>
+          <div style="font-size:11px;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${w.ruolo||''}</div>
+        </div>
       </div>
     </td>`;
 
@@ -1435,12 +1439,12 @@ async function loadRiepilogo() {
       const t = byDay[dayKey];
 
       if (!t) {
-        html += `<td style="padding:6px 4px;border-bottom:1px solid var(--border);text-align:center;background:${isWeekend?'var(--cream-dark)':'white'};color:var(--text-muted);font-size:12px;">—</td>`;
+        html += `<td style="padding:3px 2px;border-bottom:1px solid var(--border);text-align:center;background:${isWeekend?'var(--cream-dark)':'white'};color:var(--border-strong);font-size:12px;">·</td>`;
         return;
       }
 
       if (t.giornoLibero) {
-        html += `<td style="padding:6px 4px;border-bottom:1px solid var(--border);text-align:center;background:${isWeekend?'var(--cream-dark)':'var(--cream)'};color:var(--text-muted);font-size:11px;font-style:italic;">N/A</td>`;
+        html += `<td style="padding:3px 2px;border-bottom:1px solid var(--border);text-align:center;background:${isWeekend?'var(--cream-dark)':'var(--cream)'};color:var(--text-muted);font-size:10px;">N/A</td>`;
         return;
       }
 
@@ -1454,10 +1458,10 @@ async function loadRiepilogo() {
       const cellBg = !t.confermato ? 'var(--amber-light)' : (diff < 0 ? '#FEF2F2' : diff > 0 ? 'var(--amber-light)' : 'var(--green-light)');
       const effStr = eff !== null ? `<span style="color:var(--accent);font-weight:500;">${eff}h</span>` : `<span style="color:var(--amber);">⏳</span>`;
 
-      html += `<td style="padding:4px 3px;border-bottom:1px solid var(--border);text-align:center;background:${isWeekend?'var(--cream-dark)':cellBg};">
-        <div style="font-size:12px;line-height:1.4;">
+      html += `<td style="padding:3px 2px;border-bottom:1px solid var(--border);text-align:center;background:${isWeekend?'var(--cream-dark)':cellBg};">
+        <div style="font-size:11px;line-height:1.4;font-weight:500;">
           <div style="color:var(--text-secondary);">${prev}h</div>
-          <div style="border-top:1px solid var(--border);">${effStr}</div>
+          <div style="border-top:1px solid rgba(0,0,0,0.06);color:${eff!==null?(diff<0?'#DC2626':diff>0?'var(--amber)':'var(--green)'):'var(--amber)'};">${eff!==null?eff+'h':'⏳'}</div>
         </div>
       </td>`;
     });
