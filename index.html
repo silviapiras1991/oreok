@@ -1142,12 +1142,24 @@ async function renderScheduleGrid() {
 
   const days = scheduleType === 'month' ? getDaysOfMonth(period) : getDaysOfWeek(period);
 
-  // Carica schedule esistenti per tutti i worker
+  // Carica schedule esistenti e stato conferme per tutti i worker
   const existingMap = {};
+  const confermateMap = {};
   for (const w of workers) {
     const schedId = w.id+'_'+period.replace(/[^a-zA-Z0-9]/g,'_');
     const doc = await db.collection('schedules').doc(schedId).get();
     existingMap[w.id] = doc.exists ? doc.data() : null;
+    // Carica giorni già confermati
+    const tsSnap = await db.collection('timesheets')
+      .where('workerId','==',w.id)
+      .where('settimana','==', scheduleType === 'week' ? period : period)
+      .get();
+    const confermati = {};
+    tsSnap.docs.forEach(d => {
+      const t = d.data();
+      if (t.confermato && !t.giornoLibero) confermati[t.data] = true;
+    });
+    confermateMap[w.id] = confermati;
   }
 
   // Costruisci griglia
@@ -1169,6 +1181,7 @@ async function renderScheduleGrid() {
   
   html += '<th style="padding:8px 12px;font-size:11px;font-weight:500;text-transform:uppercase;color:var(--text-muted);background:var(--cream);min-width:160px;">Struttura</th>';
   html += '<th style="padding:8px 6px;font-size:11px;font-weight:500;text-transform:uppercase;color:var(--text-muted);background:var(--cream);min-width:100px;text-align:center;">Copia da...</th>';
+  html += '<th style="padding:8px 6px;font-size:11px;font-weight:500;text-transform:uppercase;color:var(--text-muted);background:var(--cream);min-width:70px;text-align:center;">Invia</th>';
   html += '</tr></thead><tbody>';
 
   // RIGHE per ogni worker
@@ -1218,6 +1231,11 @@ async function renderScheduleGrid() {
     // Pulsante copia da settimana
     html += `<td style="padding:4px 6px;border-bottom:1px solid var(--border);text-align:center;">
       <button class="btn btn-outline btn-sm" onclick="openCopiaSett('${w.id}','${w.nome} ${w.cognome}')" title="Copia orari da una settimana" style="font-size:13px;padding:5px 10px;">📋 Scegli</button>
+    </td>`;
+
+    // Pulsante invia singolo
+    html += `<td style="padding:4px 6px;border-bottom:1px solid var(--border);text-align:center;">
+      <button class="btn btn-accent btn-sm" onclick="inviaSingolo('${w.id}')" title="Invia solo a ${w.nome} ${w.cognome}" style="font-size:13px;padding:5px 10px;">📤</button>
     </td>`;
 
     html += '</tr>';
