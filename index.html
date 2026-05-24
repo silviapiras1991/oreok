@@ -374,12 +374,7 @@ tr:hover td{background:var(--cream);}
             <label id="schedule-period-label" style="font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:0.8px;color:var(--text-secondary);display:block;margin-bottom:6px;">Settimana</label>
             <input type="week" id="schedule-period" class="ore-input" style="padding:9px 14px;" onchange="renderScheduleGrid()">
           </div>
-          <div style="margin-top:18px;">
-            <button class="btn btn-outline btn-sm" onclick="document.getElementById('copia-da-week').showPicker?.() || document.getElementById('copia-da-week').focus()">
-              📋 Copia da settimana...
-            </button>
-            <input type="week" id="copia-da-week" style="opacity:0;width:1px;position:absolute;" onchange="copiaSettimanaGriglia()">
-          </div>
+
         </div>
         <div id="schedule-grid-area">
           <div class="empty-state"><div class="empty-icon">📆</div><h3>Seleziona un periodo</h3><p>Apparirà la griglia con tutti i collaboratori</p></div>
@@ -540,6 +535,30 @@ tr:hover td{background:var(--cream);}
     <div class="modal-footer">
       <button class="btn btn-outline" onclick="closeModal('modal-conferma-ore')">Annulla</button>
       <button class="btn btn-accent" onclick="saveConferma()">Conferma giornata</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL COPIA SETTIMANA -->
+<div class="modal-overlay" id="modal-copia-settimana">
+  <div class="modal" style="max-width:600px;">
+    <div class="modal-header">
+      <h3 id="modal-copia-title">Copia orari</h3>
+      <button class="modal-close" onclick="closeModal('modal-copia-settimana')">✕</button>
+    </div>
+    <div class="form-group">
+      <label>Seleziona settimana da copiare</label>
+      <input type="week" id="copia-settimana-input" class="ore-input" style="width:100%;padding:10px 14px;" onchange="previewCopiaSettimana()">
+    </div>
+    <div id="copia-preview-area" style="margin-top:16px;">
+      <div class="empty-state" style="padding:30px;">
+        <div class="empty-icon">📅</div>
+        <p>Seleziona una settimana per vedere gli orari</p>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('modal-copia-settimana')">Annulla</button>
+      <button class="btn btn-accent" id="btn-conferma-copia" onclick="confermaCopiaSettimana()" disabled>📋 Copia nella griglia</button>
     </div>
   </div>
 </div>
@@ -1070,7 +1089,7 @@ async function renderScheduleGrid() {
   });
   
   html += '<th style="padding:8px 12px;font-size:11px;font-weight:500;text-transform:uppercase;color:var(--text-muted);background:var(--cream);min-width:160px;">Struttura</th>';
-  html += '<th style="padding:8px 6px;font-size:11px;font-weight:500;text-transform:uppercase;color:var(--text-muted);background:var(--cream);min-width:80px;text-align:center;">Copia</th>';
+  html += '<th style="padding:8px 6px;font-size:11px;font-weight:500;text-transform:uppercase;color:var(--text-muted);background:var(--cream);min-width:100px;text-align:center;">Copia da...</th>';
   html += '</tr></thead><tbody>';
 
   // RIGHE per ogni worker
@@ -1114,9 +1133,9 @@ async function renderScheduleGrid() {
       </select>
     </td>`;
 
-    // Pulsante copia
+    // Pulsante copia da settimana
     html += `<td style="padding:4px 6px;border-bottom:1px solid var(--border);text-align:center;">
-      <button class="btn btn-outline btn-sm" onclick="copiaRigaWorker('${w.id}')" title="Copia da settimana precedente" style="font-size:16px;padding:5px 8px;">📋</button>
+      <button class="btn btn-outline btn-sm" onclick="openCopiaSett('${w.id}','${w.nome} ${w.cognome}')" title="Copia orari da una settimana" style="font-size:13px;padding:5px 10px;">📋 Scegli</button>
     </td>`;
 
     html += '</tr>';
@@ -1130,74 +1149,108 @@ async function renderScheduleGrid() {
   document.getElementById('invia-tutti-info').textContent = workers.length + ' collaboratori — periodo: ' + period;
 }
 
-async function copiaRigaWorker(workerId) {
+// ── COPIA SETTIMANA MODAL ──
+let copiaCurrentWorker = null;
+let copiaCurrentWorkerName = null;
+let copiaSourceData = null;
+
+function openCopiaSett(workerId, workerName) {
   const period = document.getElementById('schedule-period').value;
-  if (!period) { showToast('Seleziona prima un periodo di destinazione', 'error'); return; }
+  if (!period) { showToast('Seleziona prima il periodo di destinazione nella griglia', 'error'); return; }
+  copiaCurrentWorker = workerId;
+  copiaCurrentWorkerName = workerName;
+  copiaSourceData = null;
+  document.getElementById('modal-copia-title').textContent = 'Copia orari — ' + workerName;
+  document.getElementById('copia-settimana-input').value = '';
+  document.getElementById('btn-conferma-copia').disabled = true;
+  document.getElementById('copia-preview-area').innerHTML = `
+    <div class="empty-state" style="padding:30px;">
+      <div class="empty-icon">📅</div>
+      <p>Seleziona una settimana per vedere gli orari</p>
+    </div>`;
+  openModal('modal-copia-settimana');
+}
 
-  // Calcola periodo precedente
-  let prevPeriod;
-  if (scheduleType === 'week') {
-    const days = getDaysOfWeek(period);
-    const prevMonday = new Date(days[0]);
-    prevMonday.setDate(prevMonday.getDate()-7);
-    prevPeriod = getWeekStrFromDate(prevMonday);
-  } else {
-    const [y,m] = period.split('-').map(Number);
-    const prevDate = new Date(y, m-2, 1);
-    prevPeriod = prevDate.getFullYear()+'-'+String(prevDate.getMonth()+1).padStart(2,'0');
-  }
+async function previewCopiaSettimana() {
+  const srcPeriod = document.getElementById('copia-settimana-input').value;
+  if (!srcPeriod || !copiaCurrentWorker) return;
 
-  const schedId = workerId+'_'+prevPeriod.replace(/[^a-zA-Z0-9]/g,'_');
+  const previewArea = document.getElementById('copia-preview-area');
+  previewArea.innerHTML = '<div class="loading-spinner"></div>';
+
+  const schedId = copiaCurrentWorker+'_'+srcPeriod.replace(/[^a-zA-Z0-9]/g,'_');
   const doc = await db.collection('schedules').doc(schedId).get();
 
-  if (!doc.exists) { showToast('Nessun orario trovato nel periodo precedente', 'error'); return; }
+  if (!doc.exists || !doc.data().giorni) {
+    previewArea.innerHTML = `
+      <div style="background:var(--accent-light);border-radius:var(--radius-sm);padding:16px;text-align:center;color:var(--accent);">
+        Nessun orario trovato per questa settimana
+      </div>`;
+    document.getElementById('btn-conferma-copia').disabled = true;
+    copiaSourceData = null;
+    return;
+  }
 
-  const srcGiorni = doc.data().giorni || {};
-  const srcDays = scheduleType === 'week' ? getDaysOfWeek(prevPeriod) : getDaysOfMonth(prevPeriod);
-  const destDays = scheduleType === 'week' ? getDaysOfWeek(period) : getDaysOfMonth(period);
+  copiaSourceData = { period: srcPeriod, giorni: doc.data().giorni, strutture: doc.data().strutture||{} };
+  const srcDays = getDaysOfWeek(srcPeriod);
+  const GIORNI_FULL = ['Lunedi','Martedi','Mercoledi','Giovedi','Venerdi','Sabato','Domenica'];
 
-  // Mappa per indice
+  let html = '<div style="background:var(--cream);border-radius:var(--radius-sm);overflow:hidden;">';
+  html += '<table style="width:100%;border-collapse:collapse;">';
+  html += '<thead><tr><th style="padding:8px 14px;text-align:left;font-size:11px;text-transform:uppercase;color:var(--text-muted);border-bottom:1px solid var(--border);">Giorno</th><th style="padding:8px 14px;text-align:center;font-size:11px;text-transform:uppercase;color:var(--text-muted);border-bottom:1px solid var(--border);">Ore</th><th style="padding:8px 14px;text-align:left;font-size:11px;text-transform:uppercase;color:var(--text-muted);border-bottom:1px solid var(--border);">Struttura</th></tr></thead><tbody>';
+
+  srcDays.forEach(day => {
+    const dayKey = day.toISOString().split('T')[0];
+    const dn = GIORNI_FULL[day.getDay()===0?6:day.getDay()-1];
+    const ore = copiaSourceData.giorni[dayKey];
+    const struttura = copiaSourceData.strutture['struttura_'+dayKey] || '—';
+    const isWeekend = day.getDay()===0||day.getDay()===6;
+    const hasOre = ore !== undefined && ore !== null;
+
+    html += `<tr style="background:${isWeekend?'var(--cream-dark)':'white'}">
+      <td style="padding:8px 14px;font-size:14px;font-weight:500;border-bottom:1px solid var(--border);">${dn} ${day.getDate()}/${day.getMonth()+1}</td>
+      <td style="padding:8px 14px;text-align:center;border-bottom:1px solid var(--border);">
+        ${hasOre ? (ore===0?'<span style="color:var(--text-muted)">Non assegnato</span>':'<strong>'+ore+'h</strong>') : '<span style="color:var(--text-muted)">—</span>'}
+      </td>
+      <td style="padding:8px 14px;font-size:13px;color:var(--text-muted);border-bottom:1px solid var(--border);">${struttura}</td>
+    </tr>`;
+  });
+
+  html += '</tbody></table></div>';
+  previewArea.innerHTML = html;
+  document.getElementById('btn-conferma-copia').disabled = false;
+}
+
+function confermaCopiaSettimana() {
+  if (!copiaSourceData || !copiaCurrentWorker) return;
+
+  const destPeriod = document.getElementById('schedule-period').value;
+  const srcDays = getDaysOfWeek(copiaSourceData.period);
+  const destDays = getDaysOfWeek(destPeriod);
+
+  // Copia le ore nella griglia per indice giorno (lun→lun, mar→mar, ecc)
   srcDays.forEach((day, i) => {
     const srcKey = day.toISOString().split('T')[0];
-    if (destDays[i] && srcGiorni[srcKey] !== undefined) {
-      const destKey = destDays[i].toISOString().split('T')[0];
-      const inp = document.querySelector(`.grid-ore-input[data-worker="${workerId}"][data-day="${destKey}"]`);
-      if (inp) inp.value = srcGiorni[srcKey];
+    if (!destDays[i]) return;
+    const destKey = destDays[i].toISOString().split('T')[0];
+    const ore = copiaSourceData.giorni[srcKey];
+    if (ore !== undefined) {
+      const inp = document.querySelector(`.grid-ore-input[data-worker="${copiaCurrentWorker}"][data-day="${destKey}"]`);
+      if (inp) inp.value = ore;
+    }
+    // Copia anche struttura
+    const struttura = copiaSourceData.strutture['struttura_'+srcKey];
+    if (struttura) {
+      const sel = document.querySelector(`.grid-struttura-select[data-worker="${copiaCurrentWorker}"]`);
+      if (sel) sel.value = struttura;
     }
   });
 
-  showToast('Orari copiati per ' + workerId, 'success');
+  showToast('Orari di ' + copiaCurrentWorkerName + ' copiati nella griglia!', 'success');
+  closeModal('modal-copia-settimana');
 }
 
-async function copiaSettimanaGriglia() {
-  const copiaDa = document.getElementById('copia-da-week').value;
-  const period = document.getElementById('schedule-period').value;
-  if (!copiaDa || !period) return;
-
-  const workers = allWorkers.filter(w => !w.preRegistrato);
-  let copiati = 0;
-
-  for (const w of workers) {
-    const schedId = w.id+'_'+copiaDa.replace(/[^a-zA-Z0-9]/g,'_');
-    const doc = await db.collection('schedules').doc(schedId).get();
-    if (!doc.exists) continue;
-
-    const srcGiorni = doc.data().giorni || {};
-    const srcDays = getDaysOfWeek(copiaDa);
-    const destDays = getDaysOfWeek(period);
-
-    srcDays.forEach((day, i) => {
-      const srcKey = day.toISOString().split('T')[0];
-      if (destDays[i] && srcGiorni[srcKey] !== undefined) {
-        const destKey = destDays[i].toISOString().split('T')[0];
-        const inp = document.querySelector(`.grid-ore-input[data-worker="${w.id}"][data-day="${destKey}"]`);
-        if (inp) inp.value = srcGiorni[srcKey];
-      }
-    });
-    copiati++;
-  }
-  showToast('Orari copiati per '+copiati+' collaboratori!', 'success');
-}
+// copiaSettimanaGriglia rimossa - ora si usa modal per collaboratore
 
 async function inviaATutti() {
   const period = document.getElementById('schedule-period').value;
