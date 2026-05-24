@@ -400,7 +400,10 @@ tr:hover td{background:var(--cream);}
           <div class="actions-left">
             <input type="month" id="riepilogo-month" class="ore-input" style="padding:8px 12px;" onchange="loadRiepilogo()">
           </div>
-          <button class="btn btn-green" onclick="exportExcel()">⬇ Esporta Excel</button>
+          <div style="display:flex;gap:10px;">
+            <button class="btn btn-green" onclick="exportExcel()">⬇ Esporta Excel</button>
+            <button class="btn btn-outline" onclick="eliminaMese()" style="color:#DC2626;border-color:#DC2626;" title="Elimina tutti i dati del mese selezionato da Firestore">🗑 Elimina mese</button>
+          </div>
         </div>
         <div id="riepilogo-content">
           <div class="empty-state"><div class="empty-icon">📊</div><h3>Seleziona un periodo</h3></div>
@@ -1478,6 +1481,59 @@ async function loadRiepilogo() {
   contentEl.innerHTML = html;
 }
 
+
+async function eliminaMese() {
+  const mese = document.getElementById('riepilogo-month').value;
+  if (!mese) { showToast('Seleziona prima un mese', 'error'); return; }
+
+  // Doppia conferma
+  if (!confirm('Sei sicura di voler eliminare TUTTI i dati di ' + mese + '?\nQuesta azione non può essere annullata.\nAssicurati di aver già scaricato il file Excel prima di procedere.')) return;
+  if (!confirm('ULTIMA CONFERMA — I dati di ' + mese + ' verranno eliminati definitivamente da Firestore. Continuare?')) return;
+
+  const btn = document.querySelector('.btn-outline[onclick="eliminaMese()"]');
+  btn.disabled = true;
+  btn.textContent = 'Eliminazione...';
+
+  try {
+    const workers = allWorkers.filter(w => !w.preRegistrato);
+    let totEliminati = 0;
+
+    for (const w of workers) {
+      // Elimina timesheets del mese
+      const tsSnap = await db.collection('timesheets')
+        .where('workerId','==',w.id)
+        .where('mese','==',mese).get();
+
+      if (!tsSnap.empty) {
+        const batch = db.batch();
+        tsSnap.docs.forEach(d => batch.delete(d.ref));
+        await batch.commit();
+        totEliminati += tsSnap.size;
+      }
+
+      // Elimina schedules del mese (solo mensili)
+      const schedSnap = await db.collection('schedules')
+        .where('workerId','==',w.id)
+        .where('period','==',mese).get();
+      if (!schedSnap.empty) {
+        const batch = db.batch();
+        schedSnap.docs.forEach(d => batch.delete(d.ref));
+        await batch.commit();
+      }
+    }
+
+    showToast('Dati di ' + mese + ' eliminati (' + totEliminati + ' record) ✓', 'success');
+    document.getElementById('riepilogo-content').innerHTML = '<div class="empty-state"><div class="empty-icon">🗑</div><h3>Dati eliminati</h3><p>I dati di ' + mese + ' sono stati rimossi da Firestore</p></div>';
+    loadDashboard();
+
+  } catch(e) {
+    console.error(e);
+    showToast('Errore durante l'eliminazione: ' + e.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '🗑 Elimina mese';
+  }
+}
 
 async function exportExcel() {
   const mese = document.getElementById('riepilogo-month').value;
