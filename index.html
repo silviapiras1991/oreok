@@ -464,6 +464,55 @@ tr:hover td{background:var(--cream);}
             </div>
           </div>
         </div>
+
+        <div class="card" style="max-width:500px;">
+          <div class="card-title">📊 Utilizzo Firestore</div>
+          <div id="utilizzo-loading" style="text-align:center;padding:20px;color:var(--text-muted);font-size:14px;">
+            Calcolo in corso...
+          </div>
+          <div id="utilizzo-content" style="display:none;">
+            <!-- Documenti -->
+            <div style="margin-bottom:20px;">
+              <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px;">
+                <span style="color:var(--text-muted);">Documenti totali</span>
+                <strong id="utilizzo-docs">—</strong>
+              </div>
+              <div style="background:var(--cream);border-radius:20px;height:10px;overflow:hidden;">
+                <div id="utilizzo-docs-bar" style="height:100%;border-radius:20px;background:var(--green);transition:width 0.5s;width:0%"></div>
+              </div>
+              <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text-muted);margin-top:4px;">
+                <span id="utilizzo-docs-pct">0%</span>
+                <span>Limite piano gratuito: 1.000.000 doc</span>
+              </div>
+            </div>
+
+            <!-- Letture giornaliere stimate -->
+            <div style="margin-bottom:20px;">
+              <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px;">
+                <span style="color:var(--text-muted);">Letture/giorno stimate</span>
+                <strong id="utilizzo-reads">—</strong>
+              </div>
+              <div style="background:var(--cream);border-radius:20px;height:10px;overflow:hidden;">
+                <div id="utilizzo-reads-bar" style="height:100%;border-radius:20px;background:var(--green);transition:width 0.5s;width:0%"></div>
+              </div>
+              <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text-muted);margin-top:4px;">
+                <span id="utilizzo-reads-pct">0%</span>
+                <span>Limite piano gratuito: 50.000/giorno</span>
+              </div>
+            </div>
+
+            <!-- Mesi presenti -->
+            <div style="margin-bottom:16px;">
+              <div style="font-size:13px;color:var(--text-muted);margin-bottom:8px;">Mesi con dati in archivio</div>
+              <div id="utilizzo-mesi" style="display:flex;flex-wrap:wrap;gap:6px;"></div>
+            </div>
+
+            <!-- Alert -->
+            <div id="utilizzo-alert" style="display:none;"></div>
+
+            <button class="btn btn-outline btn-sm" onclick="calcolaUtilizzo()" style="margin-top:8px;">🔄 Aggiorna</button>
+          </div>
+        </div>
       </div>
 
       <!-- WORKER HOME -->
@@ -963,6 +1012,117 @@ async function loadProfilo() {
   document.getElementById('profilo-nome').textContent = (data.nome||'') + ' ' + (data.cognome||'');
   document.getElementById('profilo-email').textContent = data.email || currentUser.email || '—';
   document.getElementById('profilo-codice').textContent = data.codiceInvito || '—';
+  calcolaUtilizzo();
+}
+
+async function calcolaUtilizzo() {
+  document.getElementById('utilizzo-loading').style.display = 'block';
+  document.getElementById('utilizzo-content').style.display = 'none';
+
+  try {
+    // Conta documenti per tipo
+    const workers = allWorkers;
+    const nWorkers = workers.length;
+
+    // Conta timesheets
+    const tsSnap = await db.collection('timesheets')
+      .where('workerId','in', workers.length ? workers.slice(0,10).map(w=>w.id) : ['x']).get();
+
+    // Approccio più accurato: conta per mese
+    const mesiSet = new Set();
+    let totTimesheets = 0;
+
+    // Carica tutti i timesheets dei propri collaboratori
+    let allTs = [];
+    for (const w of workers.slice(0, 10)) { // max 10 per limite Firebase
+      const snap = await db.collection('timesheets').where('workerId','==',w.id).get();
+      snap.docs.forEach(d => {
+        allTs.push(d.data());
+        mesiSet.add(d.data().mese);
+      });
+      totTimesheets += snap.size;
+    }
+
+    // Conta schedules
+    let totSchedules = 0;
+    for (const w of workers.slice(0,10)) {
+      const snap = await db.collection('schedules').where('workerId','==',w.id).get();
+      totSchedules += snap.size;
+    }
+
+    // Conta strutture
+    const struttureSnap = await db.collection('strutture').where('adminId','==',currentUser.uid).get();
+
+    // Totale documenti stimato
+    const totDocs = nWorkers + totTimesheets + totSchedules + struttureSnap.size + 1; // +1 per admin
+
+    // Stime letture giornaliere (con 60 collaboratori che usano l'app)
+    const nCollaboratori = Math.min(workers.length, 60);
+    // Ogni collaboratore: ~5 letture/giorno (carica settimana)
+    // Responsabile: ~20 letture/giorno (dashboard, riepilogo)
+    const readsStimateGiorno = (nCollaboratori * 5) + 20;
+
+    // Limiti piano Spark
+    const LIMIT_DOCS = 1000000;
+    const LIMIT_READS = 50000;
+
+    const pctDocs = Math.min((totDocs / LIMIT_DOCS) * 100, 100);
+    const pctReads = Math.min((readsStimateGiorno / LIMIT_READS) * 100, 100);
+
+    // Colori in base alla percentuale
+    const coloreDocs = pctDocs > 80 ? '#DC2626' : pctDocs > 60 ? 'var(--amber)' : 'var(--green)';
+    const coloreReads = pctReads > 80 ? '#DC2626' : pctReads > 60 ? 'var(--amber)' : 'var(--green)';
+
+    // Aggiorna UI
+    document.getElementById('utilizzo-docs').textContent = totDocs.toLocaleString('it-IT') + ' / 1.000.000';
+    document.getElementById('utilizzo-docs-bar').style.width = pctDocs.toFixed(1) + '%';
+    document.getElementById('utilizzo-docs-bar').style.background = coloreDocs;
+    document.getElementById('utilizzo-docs-pct').textContent = pctDocs.toFixed(2) + '%';
+
+    document.getElementById('utilizzo-reads').textContent = readsStimateGiorno.toLocaleString('it-IT') + ' / 50.000';
+    document.getElementById('utilizzo-reads-bar').style.width = pctReads.toFixed(1) + '%';
+    document.getElementById('utilizzo-reads-bar').style.background = coloreReads;
+    document.getElementById('utilizzo-reads-pct').textContent = pctReads.toFixed(2) + '%';
+
+    // Mesi in archivio
+    const mesiArr = [...mesiSet].sort();
+    const mesiEl = document.getElementById('utilizzo-mesi');
+    if (mesiArr.length === 0) {
+      mesiEl.innerHTML = '<span style="font-size:13px;color:var(--text-muted);">Nessun dato in archivio</span>';
+    } else {
+      mesiEl.innerHTML = mesiArr.map(m => {
+        const [y,mo] = m.split('-');
+        const nomi = ['Gen','Feb','Mar','Apr','Mag','Giu','Lug','Ago','Set','Ott','Nov','Dic'];
+        return `<span style="background:var(--accent-light);color:var(--accent);padding:3px 10px;border-radius:10px;font-size:12px;font-weight:500;">${nomi[parseInt(mo)-1]} ${y}</span>`;
+      }).join('');
+    }
+
+    // Alert
+    const alertEl = document.getElementById('utilizzo-alert');
+    if (pctDocs > 80 || pctReads > 80) {
+      alertEl.style.display = 'block';
+      alertEl.innerHTML = `<div style="background:#FEF2F2;border:1px solid #FECACA;border-radius:8px;padding:12px 14px;font-size:13px;color:#991B1B;">
+        ⚠️ <strong>Attenzione:</strong> stai avvicinandoti ai limiti del piano gratuito. Vai su <strong>Riepilogo → Elimina mese</strong> per liberare spazio eliminando i mesi più vecchi.
+      </div>`;
+    } else if (pctDocs > 50 || pctReads > 50) {
+      alertEl.style.display = 'block';
+      alertEl.innerHTML = `<div style="background:var(--amber-light);border:1px solid rgba(212,132,26,0.3);border-radius:8px;padding:12px 14px;font-size:13px;color:#7a4d0d;">
+        💡 <strong>Consiglio:</strong> hai ${mesiArr.length} ${mesiArr.length===1?'mese':'mesi'} in archivio. Ricordati di eliminare i mesi vecchi dopo aver scaricato l'Excel.
+      </div>`;
+    } else {
+      alertEl.style.display = 'block';
+      alertEl.innerHTML = `<div style="background:var(--green-light);border:1px solid rgba(74,124,89,0.2);border-radius:8px;padding:12px 14px;font-size:13px;color:#2d5c3a;">
+        ✅ <strong>Tutto ok!</strong> Stai usando il ${pctDocs.toFixed(1)}% dei documenti disponibili. Ricordati di eliminare i mesi vecchi a fine anno.
+      </div>`;
+    }
+
+    document.getElementById('utilizzo-loading').style.display = 'none';
+    document.getElementById('utilizzo-content').style.display = 'block';
+
+  } catch(e) {
+    console.error(e);
+    document.getElementById('utilizzo-loading').textContent = 'Errore nel calcolo. Riprova.';
+  }
 }
 
 function copiaCodice() {
@@ -1205,7 +1365,7 @@ async function renderScheduleGrid() {
 
     days.forEach(day => {
       const dayKey = day.toISOString().split('T')[0];
-      const isWeekend = day.getDay() === 0 || day.getDay() === 6;
+      const isWeekend = day.getUTCDay() === 0 || day.getUTCDay() === 6;
       const val = giorni[dayKey] !== undefined ? giorni[dayKey] : (isWeekend ? 0 : '');
       html += `<td style="padding:4px 4px;border-bottom:1px solid var(--border);background:${isWeekend?'var(--cream-dark)':'white'};text-align:center;">
         <input type="number" min="0" max="24" step="0.5"
@@ -1481,7 +1641,7 @@ async function loadRiepilogo() {
     const isWeekend = day.getDay()===0||day.getDay()===6;
     const dn = GIORNI_MINI[day.getDay()===0?6:day.getDay()-1];
     html += `<th style="padding:6px 3px;font-size:11px;font-weight:600;color:var(--text-secondary);background:${isWeekend?'var(--cream-dark)':'var(--cream)'};text-align:center;width:52px;min-width:52px;border-bottom:1px solid var(--border);">
-      ${dn}<br><span style="font-weight:400;font-size:11px;color:var(--text-muted);">${day.getDate()}/${day.getMonth()+1}</span>
+      ${dn}<br><span style="font-weight:400;font-size:11px;color:var(--text-muted);">${day.getUTCDate()}/${day.getUTCMonth()+1}</span>
     </th>`;
   });
 
@@ -1494,8 +1654,8 @@ async function loadRiepilogo() {
   html += '<tr>';
   html += '<th style="background:var(--cream);position:sticky;left:0;z-index:2;border-bottom:2px solid var(--border-strong);"></th>';
   days.forEach(day => {
-    const isWeekend = day.getDay()===0||day.getDay()===6;
-    html += `<th style="background:${isWeekend?'var(--cream-dark)':'var(--cream)'};border-bottom:2px solid var(--border-strong);padding:2px 1px;font-size:9px;color:var(--text-muted);text-align:center;">P|E</th>`;
+    const isWeekendSub = day.getUTCDay()===0||day.getUTCDay()===6;
+    html += `<th style="background:${isWeekendSub?'var(--cream-dark)':'var(--cream)'};border-bottom:2px solid var(--border-strong);padding:2px 1px;font-size:9px;color:var(--text-muted);text-align:center;">P|E</th>`;
   });
   html += '<th style="background:var(--cream);border-bottom:2px solid var(--border-strong);border-left:2px solid var(--border-strong);"></th>';
   html += '<th style="background:var(--cream);border-bottom:2px solid var(--border-strong);"></th>';
@@ -1964,8 +2124,12 @@ function getDaysOfWeek(weekStr) {
 }
 function getDaysOfMonth(monthStr) {
   const [year,month] = monthStr.split('-').map(Number);
-  const days = []; const d = new Date(year,month-1,1);
-  while(d.getMonth()===month-1) { days.push(new Date(d)); d.setDate(d.getDate()+1); }
+  const days = [];
+  let d = new Date(Date.UTC(year, month-1, 1));
+  while(d.getUTCMonth() === month-1) {
+    days.push(new Date(d));
+    d = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()+1));
+  }
   return days;
 }
 
