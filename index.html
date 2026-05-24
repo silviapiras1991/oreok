@@ -740,11 +740,12 @@ function initApp() {
   document.getElementById('nav-username').textContent = currentUserData.nome || '';
   if (currentUserData.ruolo_app === 'admin') {
     document.getElementById('sidebar-admin').style.display = '';
-    loadDashboard();
-    loadWorkersTable();
-    loadStrutture();
-    initSchedulePage();
-    initRiepilogoPage();
+    // Carica prima workers e strutture, poi inizializza le pagine
+    Promise.all([loadWorkersTable(), loadStrutture()]).then(() => {
+      initSchedulePage();
+      initRiepilogoPage();
+      loadDashboard();
+    });
   } else {
     document.getElementById('sidebar-worker').style.display = '';
     showPage('worker-home');
@@ -757,12 +758,25 @@ function showPage(pageId) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.sidebar-item').forEach(b => b.classList.toggle('active', b.dataset.page === pageId));
   document.getElementById('page-' + pageId).classList.add('active');
-  // Ricarica riepilogo se si torna su quella pagina
+
   if (pageId === 'riepilogo') {
     const periodo = riepilogoTab === 'mese'
       ? document.getElementById('riepilogo-month').value
       : document.getElementById('riepilogo-week').value;
     if (periodo) loadRiepilogo();
+  }
+
+  if (pageId === 'invia-orari') {
+    const period = document.getElementById('schedule-period').value;
+    if (period) renderScheduleGrid();
+  }
+
+  if (pageId === 'collaboratori') {
+    renderWorkers(allWorkers);
+  }
+
+  if (pageId === 'strutture') {
+    renderStrutture();
   }
 }
 
@@ -806,11 +820,6 @@ async function loadWorkersTable() {
   const snap = await db.collection('users').where('adminId','==',currentUser.uid).get();
   allWorkers = snap.docs.map(d => ({id:d.id,...d.data()})).sort((a,b)=>(a.cognome||'').localeCompare(b.cognome||''));
   renderWorkers(allWorkers);
-  // Ricarica griglia se siamo in invia orari
-  const period = document.getElementById('schedule-period')?.value;
-  if (period && document.getElementById('page-invia-orari')?.classList.contains('active')) {
-    renderScheduleGrid();
-  }
 }
 
 function renderWorkers(workers) {
