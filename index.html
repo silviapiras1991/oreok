@@ -401,7 +401,7 @@ tr:hover td{background:var(--cream);}
             <input type="month" id="riepilogo-month" class="ore-input" style="padding:8px 12px;" onchange="loadRiepilogo()">
             <input type="week" id="riepilogo-week" class="ore-input" style="padding:8px 12px;display:none;" onchange="loadRiepilogo()">
           </div>
-          <button class="btn btn-green" onclick="exportExcel()">⬇ Esporta Excel</button>
+          <button class="btn btn-green" id="btn-export-excel" onclick="exportExcel()">⬇ Esporta Excel</button>
         </div>
         <div id="riepilogo-content">
           <div class="empty-state"><div class="empty-icon">📊</div><h3>Seleziona un periodo</h3></div>
@@ -1498,25 +1498,106 @@ async function loadRiepilogo() {
 async function exportExcel() {
   const mese = document.getElementById('riepilogo-month').value;
   if (!mese) { showToast('Seleziona prima un mese', 'error'); return; }
-  const tsSnap = await db.collection('timesheets').where('mese','==',mese).get();
+
+  const workers = allWorkers.filter(w => !w.preRegistrato);
+  if (!workers.length) { showToast('Nessun collaboratore', 'error'); return; }
+
+  showToast('Preparazione Excel...', '');
+
+  // Carica tutti i timesheets del mese
   const tsMap = {};
-  tsSnap.forEach(d => { const t=d.data(); if(!tsMap[t.workerId]) tsMap[t.workerId]=[]; tsMap[t.workerId].push(t); });
-  const rows = [['Nome','Cognome','Mese','Ore Previste','Ore Effettive','Differenza','Giorni Pendenti']];
-  allWorkers.filter(w=>!w.preRegistrato).forEach(w => {
-    const tsList = tsMap[w.id]||[];
-    const totPrev = tsList.reduce((s,t)=>s+(t.oreRichieste||0),0);
-    const totEff = tsList.filter(t=>t.confermato).reduce((s,t)=>s+(t.oreEffettive??t.oreRichieste??0),0);
-    const pendenti = tsList.filter(t=>!t.confermato).length;
-    rows.push([w.nome,w.cognome,mese,totPrev.toFixed(1),totEff.toFixed(1),(totEff-totPrev).toFixed(1),pendenti]);
+  for (const w of workers) {
+    const snap = await db.collection('timesheets').where('workerId','==',w.id).where('mese','==',mese).get();
+    tsMap[w.id] = snap.docs.map(d => d.data()).sort((a,b) => a.data.localeCompare(b.data));
+  }
+
+  // Ottieni tutti i giorni del mese
+  const days = getDaysOfMonth(mese);
+  const GIORNI_MINI = ['Lu','Ma','Me','Gi','Ve','Sa','Do'];
+
+  // ── FOGLIO 1: RIEPILOGO GRIGLIA ──
+  const headerRow1 = ['Collaboratore', 'Ruolo'];
+  days.forEach(d => {
+    const dn = GIORNI_MINI[d.getDay()===0?6:d.getDay()-1];
+    headerRow1.push(dn+' '+d.getDate());
   });
-  rows.push([],['DETTAGLIO GIORNALIERO'],['Collaboratore','Data','Ore Previste','Ore Effettive','Confermato','Tipo giustificativo','Protocollo malattia','Note']);
-  allWorkers.filter(w=>!w.preRegistrato).forEach(w => {
-    const tsList=(tsMap[w.id]||[]).sort((a,b)=>a.data.localeCompare(b.data));
-    tsList.forEach(t => rows.push([w.nome+' '+w.cognome,t.data,t.oreRichieste?.toFixed(1)||'',t.oreEffettive?.toFixed(1)||'',t.confermato?'Si':'No',t.giustificativo?.tipo||'',t.giustificativo?.protocollo||'',t.giustificativo?.note||'']));
+  headerRow1.push('', 'TOT PREVISTE', 'TOT EFFETTIVE', 'DIFFERENZA', 'PENDENTI');
+
+  // Riga separatrice previste/effettive
+  const subHeaderRow = ['', ''];
+  days.forEach(() => subHeaderRow.push('Prev / Eff'));
+  subHeaderRow.push('', '', '', '', '');
+
+  const gridRows = [headerRow1, subHeaderRow];
+
+  workers.forEach(w => {
+    const tsList = tsMap[w.id] || [];
+    const tsByDay = {};
+    tsList.forEach(t => { tsByDay[t.data] = t; });
+
+    const totPrev = tsList.filter(t=>!t.giornoLibero).reduce((s,t)=>s+(t.oreRichieste||0),0);
+    const totEff = tsList.filter(t=>t.confermato&&!t.giornoLibero).reduce((s,t)=>s+(t.oreEffettive??t.oreRichieste??0),0);
+    const pendenti = tsList.filter(t=>!t.confermato&&!t.giornoLibero).length;
+    const diff = totEff - totPrev;
+
+    const row = [w.nome+' '+w.cognome, w.ruolo||''];
+    days.forEach(d => {
+      const dayKey = d.toISOString().split('T')[0];
+      const t = tsByDay[dayKey];
+      if (!t) { row.push('—'); return; }
+      if (t.giornoLibero) { row.push('N/A'); return; }
+      const eff = t.confermato ? (t.oreEffettive??t.oreRichieste) : '—';
+      row.push((t.oreRichieste||0) + ' / ' + eff);
+    });
+
+    row.push('');
+    row.push(totPrev.toFixed(1));
+    row.push(totEff.toFixed(1));
+    row.push((diff>=0?'+':'')+diff.toFixed(1));
+    row.push(pendenti > 0 ? pendenti+' giorni' : 'Tutti confermati');
+    gridRows.push(row);
   });
-  const ws = XLSX.utils.aoa_to_sheet(rows);
+
+  // ── FOGLIO 2: DETTAGLIO GIORNALIERO ──
+  const detailRows = [['Collaboratore','Ruolo','Data','Giorno','Ore Previste','Ore Effettive','Differenza','Stato','Struttura prevista','Struttura effettiva','Giustificativo','Protocollo malattia','Dal','Al','Note']];
+
+  workers.forEach(w => {
+    const tsList = tsMap[w.id] || [];
+    tsList.forEach(t => {
+      if (t.giornoLibero) return;
+      const d = new Date(t.data+'T12:00:00');
+      const dn = ['Domenica','Lunedi','Martedi','Mercoledi','Giovedi','Venerdi','Sabato'][d.getDay()];
+      const oreEff = t.confermato ? (t.oreEffettive??t.oreRichieste) : '';
+      const diff = oreEff !== '' ? (oreEff - t.oreRichieste) : '';
+      const stato = t.confermato ? (diff!==0?'Variazione':'Confermato') : 'Pendente';
+      detailRows.push([
+        w.nome+' '+w.cognome, w.ruolo||'', t.data, dn,
+        t.oreRichieste||0, oreEff, diff!==''?(diff>=0?'+':'')+diff.toFixed(1):'',
+        stato,
+        t.strutturaRichiesta||'', t.strutturaEffettiva||'',
+        t.giustificativo?.tipo||'', t.giustificativo?.protocollo||'',
+        t.giustificativo?.dal||'', t.giustificativo?.al||'',
+        t.giustificativo?.note||''
+      ]);
+    });
+    // Riga totali per worker
+    const totPrev = tsList.filter(t=>!t.giornoLibero).reduce((s,t)=>s+(t.oreRichieste||0),0);
+    const totEff = tsList.filter(t=>t.confermato&&!t.giornoLibero).reduce((s,t)=>s+(t.oreEffettive??t.oreRichieste??0),0);
+    detailRows.push(['TOTALE '+w.nome+' '+w.cognome,'','','','',totPrev.toFixed(1),totEff.toFixed(1),(totEff-totPrev>=0?'+':'')+(totEff-totPrev).toFixed(1),'','','','','','','']);
+    detailRows.push([]);
+  });
+
+  // Crea workbook con 2 fogli
   const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, 'Riepilogo '+mese);
+  const ws1 = XLSX.utils.aoa_to_sheet(gridRows);
+  const ws2 = XLSX.utils.aoa_to_sheet(detailRows);
+
+  // Larghezze colonne
+  ws1['!cols'] = [{wch:22},{wch:14},...days.map(()=>({wch:12})),{wch:2},{wch:13},{wch:13},{wch:12},{wch:16}];
+  ws2['!cols'] = [{wch:22},{wch:14},{wch:12},{wch:12},{wch:12},{wch:12},{wch:12},{wch:14},{wch:18},{wch:18},{wch:14},{wch:18},{wch:12},{wch:12},{wch:20}];
+
+  XLSX.utils.book_append_sheet(wb, ws1, 'Riepilogo '+mese);
+  XLSX.utils.book_append_sheet(wb, ws2, 'Dettaglio giornaliero');
   XLSX.writeFile(wb, 'OreOK_'+mese+'.xlsx');
   showToast('File Excel scaricato! ⬇', 'success');
 }
