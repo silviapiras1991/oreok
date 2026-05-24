@@ -364,31 +364,32 @@ tr:hover td{background:var(--cream);}
 
       <!-- INVIA ORARI -->
       <div id="page-invia-orari" class="page">
-        <div class="page-header"><h2>Invia Orari</h2><p>Assegna le ore di lavoro settimanali o mensili</p></div>
+        <div class="page-header"><h2>Invia Orari</h2><p>Prepara e invia gli orari a tutti i collaboratori in una volta</p></div>
         <div class="tab-bar">
-          <button class="tab-btn active" onclick="switchScheduleTab('week',this)">Settimanale</button>
-          <button class="tab-btn" onclick="switchScheduleTab('month',this)">Mensile</button>
+          <button class="tab-btn active" id="stab-week" onclick="switchScheduleTab('week')">Settimanale</button>
+          <button class="tab-btn" id="stab-month" onclick="switchScheduleTab('month')">Mensile</button>
         </div>
-        <div class="card">
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
-            <div class="form-group" style="margin:0">
-              <label>Collaboratore</label>
-              <select class="form-select" id="schedule-worker-select" onchange="renderScheduleForm()">
-                <option value="">— Seleziona —</option>
-              </select>
-            </div>
-            <div class="form-group" style="margin:0">
-              <label id="schedule-period-label">Settimana</label>
-              <input type="week" id="schedule-period" class="ore-input" style="width:100%;padding:10px 14px;" onchange="renderScheduleForm()">
-            </div>
+        <div style="display:flex;align-items:center;gap:16px;margin-bottom:20px;flex-wrap:wrap;">
+          <div class="form-group" style="margin:0">
+            <label id="schedule-period-label" style="font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:0.8px;color:var(--text-secondary);display:block;margin-bottom:6px;">Settimana</label>
+            <input type="week" id="schedule-period" class="ore-input" style="padding:9px 14px;" onchange="renderScheduleGrid()">
           </div>
-          <div style="display:flex;align-items:center;gap:10px;margin-bottom:20px;flex-wrap:wrap;">
-            <span style="font-size:13px;color:var(--text-muted);">Copia orari da:</span>
-            <input type="week" id="copia-da-week" class="ore-input" style="padding:7px 12px;">
-            <button class="btn btn-outline btn-sm" onclick="copiaSettimana()">📋 Copia</button>
+          <div style="margin-top:18px;">
+            <button class="btn btn-outline btn-sm" onclick="document.getElementById('copia-da-week').showPicker?.() || document.getElementById('copia-da-week').focus()">
+              📋 Copia da settimana...
+            </button>
+            <input type="week" id="copia-da-week" style="opacity:0;width:1px;position:absolute;" onchange="copiaSettimanaGriglia()">
           </div>
-          <div id="schedule-form-area">
-            <div class="empty-state"><div class="empty-icon">📆</div><h3>Seleziona collaboratore e periodo</h3></div>
+        </div>
+        <div id="schedule-grid-area">
+          <div class="empty-state"><div class="empty-icon">📆</div><h3>Seleziona un periodo</h3><p>Apparirà la griglia con tutti i collaboratori</p></div>
+        </div>
+        <div id="invia-tutti-bar" style="display:none;position:sticky;bottom:0;background:white;border-top:1px solid var(--border);padding:16px 0;margin-top:8px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+            <div style="font-size:14px;color:var(--text-muted);" id="invia-tutti-info">—</div>
+            <button class="btn btn-accent" style="padding:12px 28px;font-size:15px;" onclick="inviaATutti()">
+              📤 Invia a tutti i collaboratori
+            </button>
           </div>
         </div>
       </div>
@@ -995,114 +996,283 @@ function initSchedulePage() {
   const now = new Date();
   const w = getWeekNumber(now);
   document.getElementById('schedule-period').value = now.getFullYear()+'-W'+String(w).padStart(2,'0');
+  renderScheduleGrid();
 }
 
-function switchRiepilogoTab(tab) {
-  riepilogoTab = tab;
-  document.getElementById('rtab-mese').classList.toggle('active', tab === 'mese');
-  document.getElementById('rtab-settimana').classList.toggle('active', tab === 'settimana');
-  document.getElementById('riepilogo-month').style.display = tab === 'mese' ? '' : 'none';
-  document.getElementById('riepilogo-week').style.display = tab === 'settimana' ? '' : 'none';
-  // Ricarica subito se c'e gia un periodo selezionato
-  const periodo = tab === 'mese'
-    ? document.getElementById('riepilogo-month').value
-    : document.getElementById('riepilogo-week').value;
-  if (periodo) {
-    loadRiepilogo();
-  } else {
-    document.getElementById('riepilogo-content').innerHTML = '<div class="empty-state"><div class="empty-icon">📊</div><h3>Seleziona un periodo</h3></div>';
-  }
-}
-
-function switchScheduleTab(type, btn) {
+function switchScheduleTab(type) {
   scheduleType = type;
-  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
-  btn.classList.add('active');
+  document.getElementById('stab-week').classList.toggle('active', type === 'week');
+  document.getElementById('stab-month').classList.toggle('active', type === 'month');
   const inp = document.getElementById('schedule-period');
   inp.type = type === 'month' ? 'month' : 'week';
   document.getElementById('schedule-period-label').textContent = type === 'month' ? 'Mese' : 'Settimana';
+  const copiaInp = document.getElementById('copia-da-week');
+  if (copiaInp) copiaInp.type = type === 'month' ? 'month' : 'week';
   inp.value = '';
-  document.getElementById('schedule-form-area').innerHTML = '<div class="empty-state"><div class="empty-icon">📆</div><h3>Seleziona collaboratore e periodo</h3></div>';
+  document.getElementById('schedule-grid-area').innerHTML = '<div class="empty-state"><div class="empty-icon">📆</div><h3>Seleziona un periodo</h3><p>Apparira la griglia con tutti i collaboratori</p></div>';
+  document.getElementById('invia-tutti-bar').style.display = 'none';
 }
 
-async function renderScheduleForm() {
-  const workerId = document.getElementById('schedule-worker-select').value;
+async function renderScheduleGrid() {
   const period = document.getElementById('schedule-period').value;
-  const area = document.getElementById('schedule-form-area');
-  if (!workerId || !period) {
-    area.innerHTML = '<div class="empty-state"><div class="empty-icon">📆</div><h3>Seleziona collaboratore e periodo</h3></div>';
+  const area = document.getElementById('schedule-grid-area');
+  const bar = document.getElementById('invia-tutti-bar');
+
+  if (!period) {
+    area.innerHTML = '<div class="empty-state"><div class="empty-icon">📆</div><h3>Seleziona un periodo</h3></div>';
+    bar.style.display = 'none';
     return;
   }
+
+  const workers = allWorkers.filter(w => !w.preRegistrato);
+  if (!workers.length) {
+    area.innerHTML = '<div class="empty-state"><div class="empty-icon">👥</div><h3>Nessun collaboratore attivo</h3></div>';
+    bar.style.display = 'none';
+    return;
+  }
+
+  area.innerHTML = '<div class="loading-spinner"></div>';
+
   const days = scheduleType === 'month' ? getDaysOfMonth(period) : getDaysOfWeek(period);
-  const schedId = workerId+'_'+period.replace(/\W/g,'_');
-  const schedDoc = await db.collection('schedules').doc(schedId).get();
-  const existing = schedDoc.exists ? schedDoc.data().giorni||{} : {};
-  let html = '<div class="ore-grid">';
+
+  // Carica schedule esistenti per tutti i worker
+  const existingMap = {};
+  for (const w of workers) {
+    const schedId = w.id+'_'+period.replace(/[^a-zA-Z0-9]/g,'_');
+    const doc = await db.collection('schedules').doc(schedId).get();
+    existingMap[w.id] = doc.exists ? doc.data() : null;
+  }
+
+  // Costruisci griglia
+  const GIORNI_MINI = ['Lu','Ma','Me','Gi','Ve','Sa','Do'];
+  
+  let html = '<div style="overflow-x:auto;"><table style="min-width:900px;border-collapse:collapse;">';
+  
+  // HEADER
+  html += '<thead><tr>';
+  html += '<th style="text-align:left;padding:10px 14px;font-size:12px;font-weight:500;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-muted);background:var(--cream);min-width:160px;position:sticky;left:0;z-index:2;">Collaboratore</th>';
+  
   days.forEach(day => {
-    const dayKey = day.toISOString().split('T')[0];
-    const dayName = GIORNI[day.getDay()===0?6:day.getDay()-1];
-    const isWeekend = day.getDay()===0||day.getDay()===6;
-    const val = existing[dayKey]||'';
-    const strutturaVal = existing['struttura_'+dayKey] || '';
-    const struttureOpts = allStrutture.map(s => `<option value="${s.nome}" ${s.nome===strutturaVal?'selected':''}>${s.nome}</option>`).join('');
-    html += `<div class="ore-day" style="${isWeekend?'background:var(--cream-dark);':''};grid-template-columns:130px 100px 1fr;">
-      <div class="ore-day-label">${dayName} <span class="day-num">${day.getDate()}/${String(day.getMonth()+1).padStart(2,'0')}</span>
-      ${isWeekend?'<span class="badge badge-gray" style="font-size:10px;padding:1px 6px">Weekend</span>':''}</div>
-      <input class="ore-input" type="number" min="0" max="24" step="0.5" value="${val !== '' ? val : (isWeekend ? '0' : '')}" placeholder="${isWeekend?'0':'—'}" data-day="${dayKey}">
-      <select class="struttura-select form-select" data-day="${dayKey}" style="font-size:13px;padding:8px 10px;">
-        <option value="">— Struttura —</option>${struttureOpts}
-      </select>
-    </div>`;
+    const isWeekend = day.getDay() === 0 || day.getDay() === 6;
+    const dn = GIORNI_MINI[day.getDay()===0?6:day.getDay()-1];
+    html += `<th style="padding:8px 6px;font-size:11px;font-weight:500;text-transform:uppercase;color:var(--text-muted);background:${isWeekend?'var(--cream-dark)':'var(--cream)'};text-align:center;min-width:72px;">
+      ${dn}<br><span style="font-weight:400;font-size:11px;">${day.getDate()}/${day.getMonth()+1}</span>
+    </th>`;
   });
-  html += `</div><div style="margin-top:20px;display:flex;gap:10px;justify-content:flex-end;">
-    <button class="btn btn-outline" onclick="document.querySelectorAll('#schedule-form-area .ore-input').forEach(i=>i.value='')">Cancella</button>
-    <button class="btn btn-accent" onclick="saveSchedule('${workerId}','${period}')">📤 Invia orari</button>
-  </div>`;
+  
+  html += '<th style="padding:8px 12px;font-size:11px;font-weight:500;text-transform:uppercase;color:var(--text-muted);background:var(--cream);min-width:160px;">Struttura</th>';
+  html += '<th style="padding:8px 6px;font-size:11px;font-weight:500;text-transform:uppercase;color:var(--text-muted);background:var(--cream);min-width:80px;text-align:center;">Copia</th>';
+  html += '</tr></thead><tbody>';
+
+  // RIGHE per ogni worker
+  workers.forEach(w => {
+    const existing = existingMap[w.id];
+    const giorni = existing?.giorni || {};
+    const strutture = existing?.strutture || {};
+    const initials = (w.nome?.[0]||'')+(w.cognome?.[0]||'');
+    const strutturaDefault = strutture[Object.keys(strutture)[0]] || '';
+
+    html += `<tr data-worker="${w.id}">`;
+    html += `<td style="padding:8px 14px;border-bottom:1px solid var(--border);position:sticky;left:0;background:white;z-index:1;">
+      <div class="worker-info">
+        <div class="avatar avatar-sm">${initials}</div>
+        <div><div style="font-weight:500;font-size:13px;">${w.nome} ${w.cognome}</div><div style="font-size:11px;color:var(--text-muted)">${w.ruolo||''}</div></div>
+      </div>
+    </td>`;
+
+    days.forEach(day => {
+      const dayKey = day.toISOString().split('T')[0];
+      const isWeekend = day.getDay() === 0 || day.getDay() === 6;
+      const val = giorni[dayKey] !== undefined ? giorni[dayKey] : (isWeekend ? 0 : '');
+      html += `<td style="padding:4px 4px;border-bottom:1px solid var(--border);background:${isWeekend?'var(--cream-dark)':'white'};text-align:center;">
+        <input type="number" min="0" max="24" step="0.5"
+          value="${val}"
+          placeholder="—"
+          data-worker="${w.id}"
+          data-day="${dayKey}"
+          class="grid-ore-input"
+          style="width:64px;padding:6px 4px;border:1.5px solid var(--border-strong);border-radius:6px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;text-align:center;outline:none;background:${isWeekend?'var(--cream-dark)':'white'};"
+          onfocus="this.style.borderColor='var(--accent)'"
+          onblur="this.style.borderColor='var(--border-strong)'">
+      </td>`;
+    });
+
+    // Select struttura
+    const strOpts = allStrutture.map(s => `<option value="${s.nome}" ${s.nome===strutturaDefault?'selected':''}>${s.nome}</option>`).join('');
+    html += `<td style="padding:4px 8px;border-bottom:1px solid var(--border);">
+      <select class="grid-struttura-select" data-worker="${w.id}" style="width:100%;padding:6px 8px;border:1.5px solid var(--border-strong);border-radius:6px;font-family:'DM Sans',sans-serif;font-size:13px;outline:none;">
+        <option value="">— Nessuna —</option>${strOpts}
+      </select>
+    </td>`;
+
+    // Pulsante copia
+    html += `<td style="padding:4px 6px;border-bottom:1px solid var(--border);text-align:center;">
+      <button class="btn btn-outline btn-sm" onclick="copiaRigaWorker('${w.id}')" title="Copia da settimana precedente" style="font-size:16px;padding:5px 8px;">📋</button>
+    </td>`;
+
+    html += '</tr>';
+  });
+
+  html += '</tbody></table></div>';
   area.innerHTML = html;
+
+  // Aggiorna info bar
+  bar.style.display = '';
+  document.getElementById('invia-tutti-info').textContent = workers.length + ' collaboratori — periodo: ' + period;
 }
 
-async function saveSchedule(workerId, period) {
-  const giorni = {};
-  let totOre = 0;
-  const strutture = {};
-  document.querySelectorAll('#schedule-form-area .ore-input').forEach(inp => {
-    if (inp.value !== '') {
-      giorni[inp.dataset.day] = parseFloat(inp.value);
-      totOre += parseFloat(inp.value);
+async function copiaRigaWorker(workerId) {
+  const period = document.getElementById('schedule-period').value;
+  if (!period) { showToast('Seleziona prima un periodo di destinazione', 'error'); return; }
+
+  // Calcola periodo precedente
+  let prevPeriod;
+  if (scheduleType === 'week') {
+    const days = getDaysOfWeek(period);
+    const prevMonday = new Date(days[0]);
+    prevMonday.setDate(prevMonday.getDate()-7);
+    prevPeriod = getWeekStrFromDate(prevMonday);
+  } else {
+    const [y,m] = period.split('-').map(Number);
+    const prevDate = new Date(y, m-2, 1);
+    prevPeriod = prevDate.getFullYear()+'-'+String(prevDate.getMonth()+1).padStart(2,'0');
+  }
+
+  const schedId = workerId+'_'+prevPeriod.replace(/[^a-zA-Z0-9]/g,'_');
+  const doc = await db.collection('schedules').doc(schedId).get();
+
+  if (!doc.exists) { showToast('Nessun orario trovato nel periodo precedente', 'error'); return; }
+
+  const srcGiorni = doc.data().giorni || {};
+  const srcDays = scheduleType === 'week' ? getDaysOfWeek(prevPeriod) : getDaysOfMonth(prevPeriod);
+  const destDays = scheduleType === 'week' ? getDaysOfWeek(period) : getDaysOfMonth(period);
+
+  // Mappa per indice
+  srcDays.forEach((day, i) => {
+    const srcKey = day.toISOString().split('T')[0];
+    if (destDays[i] && srcGiorni[srcKey] !== undefined) {
+      const destKey = destDays[i].toISOString().split('T')[0];
+      const inp = document.querySelector(`.grid-ore-input[data-worker="${workerId}"][data-day="${destKey}"]`);
+      if (inp) inp.value = srcGiorni[srcKey];
     }
   });
-  document.querySelectorAll('#schedule-form-area .struttura-select').forEach(sel => {
-    if (sel.value) strutture['struttura_'+sel.dataset.day] = sel.value;
-  });
-  if (!Object.keys(giorni).length) { showToast('Inserisci almeno un ora', 'error'); return; }
-  const schedId = workerId+'_'+period.replace(/\W/g,'_');
-  try {
-    await db.collection('schedules').doc(schedId).set({
-      workerId, period, type: scheduleType, giorni, totOre, strutture,
-      inviatoDa: currentUser.uid,
-      inviatoAt: firebase.firestore.FieldValue.serverTimestamp()
+
+  showToast('Orari copiati per ' + workerId, 'success');
+}
+
+async function copiaSettimanaGriglia() {
+  const copiaDa = document.getElementById('copia-da-week').value;
+  const period = document.getElementById('schedule-period').value;
+  if (!copiaDa || !period) return;
+
+  const workers = allWorkers.filter(w => !w.preRegistrato);
+  let copiati = 0;
+
+  for (const w of workers) {
+    const schedId = w.id+'_'+copiaDa.replace(/[^a-zA-Z0-9]/g,'_');
+    const doc = await db.collection('schedules').doc(schedId).get();
+    if (!doc.exists) continue;
+
+    const srcGiorni = doc.data().giorni || {};
+    const srcDays = getDaysOfWeek(copiaDa);
+    const destDays = getDaysOfWeek(period);
+
+    srcDays.forEach((day, i) => {
+      const srcKey = day.toISOString().split('T')[0];
+      if (destDays[i] && srcGiorni[srcKey] !== undefined) {
+        const destKey = destDays[i].toISOString().split('T')[0];
+        const inp = document.querySelector(`.grid-ore-input[data-worker="${w.id}"][data-day="${destKey}"]`);
+        if (inp) inp.value = srcGiorni[srcKey];
+      }
     });
-    const batch = db.batch();
-    for (const [day, ore] of Object.entries(giorni)) {
-      const mese = day.substring(0,7);
-      const tsId = workerId+'_'+day;
-      batch.set(db.collection('timesheets').doc(tsId), {
-        workerId, data: day, mese,
-        settimana: getWeekStrFromDate(new Date(day+'T12:00:00')),
-        oreRichieste: ore,
-        strutturaRichiesta: strutture['struttura_'+day] || null,
-        giornoLibero: ore === 0,
-        confermato: ore === 0 ? true : false,
-        giustificativo: ore === 0 ? {tipo: 'giorno_libero', note: 'Nessuna ora assegnata'} : null,
-        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-      }, {merge:true});
+    copiati++;
+  }
+  showToast('Orari copiati per '+copiati+' collaboratori!', 'success');
+}
+
+async function inviaATutti() {
+  const period = document.getElementById('schedule-period').value;
+  if (!period) { showToast('Seleziona un periodo', 'error'); return; }
+
+  const workers = allWorkers.filter(w => !w.preRegistrato);
+  if (!workers.length) { showToast('Nessun collaboratore', 'error'); return; }
+
+  const btn = document.querySelector('#invia-tutti-bar .btn-accent');
+  btn.disabled = true;
+  btn.textContent = 'Invio in corso...';
+
+  try {
+    const days = scheduleType === 'month' ? getDaysOfMonth(period) : getDaysOfWeek(period);
+    let totWorkers = 0;
+
+    for (const w of workers) {
+      const giorni = {};
+      const strutture = {};
+      let totOre = 0;
+
+      // Raccoglie ore dalla griglia
+      days.forEach(day => {
+        const dayKey = day.toISOString().split('T')[0];
+        const inp = document.querySelector(`.grid-ore-input[data-worker="${w.id}"][data-day="${dayKey}"]`);
+        if (inp && inp.value !== '') {
+          giorni[dayKey] = parseFloat(inp.value);
+          totOre += parseFloat(inp.value);
+        }
+      });
+
+      // Raccoglie struttura
+      const strSel = document.querySelector(`.grid-struttura-select[data-worker="${w.id}"]`);
+      if (strSel && strSel.value) {
+        days.forEach(day => {
+          const dayKey = day.toISOString().split('T')[0];
+          if (giorni[dayKey] !== undefined && giorni[dayKey] > 0) {
+            strutture['struttura_'+dayKey] = strSel.value;
+          }
+        });
+      }
+
+      if (!Object.keys(giorni).length) continue;
+
+      const schedId = w.id+'_'+period.replace(/[^a-zA-Z0-9]/g,'_');
+      await db.collection('schedules').doc(schedId).set({
+        workerId: w.id, period, type: scheduleType, giorni, totOre, strutture,
+        inviatoDa: currentUser.uid,
+        inviatoAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+
+      const batch = db.batch();
+      for (const [day, ore] of Object.entries(giorni)) {
+        const mese = day.substring(0,7);
+        const tsId = w.id+'_'+day;
+        batch.set(db.collection('timesheets').doc(tsId), {
+          workerId: w.id, data: day, mese,
+          settimana: getWeekStrFromDate(new Date(day+'T12:00:00')),
+          oreRichieste: ore,
+          strutturaRichiesta: strutture['struttura_'+day] || null,
+          giornoLibero: ore === 0,
+          confermato: ore === 0,
+          giustificativo: ore === 0 ? {tipo:'giorno_libero', note:'Nessuna ora assegnata'} : null,
+          updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        }, {merge:true});
+      }
+      await batch.commit();
+      totWorkers++;
     }
-    await batch.commit();
-    showToast('Orari inviati con successo! 📤', 'success');
+
+    showToast('Orari inviati a '+totWorkers+' collaboratori! 📤', 'success');
     loadDashboard();
   } catch(e) {
-    showToast('Errore: '+e.message, 'error');
+    console.error(e);
+    showToast('Errore durante l'invio: '+e.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '📤 Invia a tutti i collaboratori';
   }
+}
+
+// Mantieni saveSchedule per compatibilita (non piu usata direttamente)
+async function saveSchedule(workerId, period) {
+  // Ora gestito da inviaATutti
 }
 
 // ── RIEPILOGO ──
