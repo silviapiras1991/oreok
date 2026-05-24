@@ -1512,6 +1512,124 @@ function confermaCopiaSettimana() {
 
 // copiaSettimanaGriglia rimossa - ora si usa modal per collaboratore
 
+function raccogliOreWorker(workerId, days) {
+  const giorni = {};
+  const strutture = {};
+  days.forEach(day => {
+    const dayKey = day.toISOString().split('T')[0];
+    const inp = document.querySelector(`.grid-ore-input[data-worker="${workerId}"][data-day="${dayKey}"]`);
+    if (inp && inp.value !== '') {
+      giorni[dayKey] = parseFloat(inp.value);
+    }
+  });
+  const strSel = document.querySelector(`.grid-struttura-select[data-worker="${workerId}"]`);
+  if (strSel && strSel.value) {
+    days.forEach(day => {
+      const dayKey = day.toISOString().split('T')[0];
+      if (giorni[dayKey] !== undefined && giorni[dayKey] > 0) {
+        strutture['struttura_'+dayKey] = strSel.value;
+      }
+    });
+  }
+  return {giorni, strutture};
+}
+
+async function inviaOreWorker(workerId, period, giorni, strutture) {
+  if (!Object.keys(giorni).length) return 0;
+
+  // Carica giorni già confermati
+  const primoGiorno = Object.keys(giorni).sort()[0];
+  const mese = primoGiorno ? primoGiorno.substring(0,7) : '';
+  let tsSnap;
+  if (scheduleType === 'month') {
+    tsSnap = await db.collection('timesheets').where('workerId','==',workerId).where('mese','==',mese).get();
+  } else {
+    tsSnap = await db.collection('timesheets').where('workerId','==',workerId).where('settimana','==',period).get();
+  }
+  const confermati = {};
+  tsSnap.docs.forEach(d => {
+    const t = d.data();
+    if (t.confermato && !t.giornoLibero) confermati[t.data] = true;
+  });
+
+  // Solo giorni non confermati
+  const giorniDaInviare = {};
+  for (const [day, ore] of Object.entries(giorni)) {
+    if (!confermati[day]) giorniDaInviare[day] = ore;
+  }
+  if (!Object.keys(giorniDaInviare).length) return 0;
+
+  const totOre = Object.values(giorniDaInviare).reduce((s,o) => s+o, 0);
+
+  // Merge con schedule esistente
+  const schedId = workerId+'_'+period.replace(/[^a-zA-Z0-9]/g,'_');
+  const existingDoc = await db.collection('schedules').doc(schedId).get();
+  const existingGiorni = existingDoc.exists ? existingDoc.data().giorni||{} : {};
+  const existingStrutture = existingDoc.exists ? existingDoc.data().strutture||{} : {};
+  const mergedGiorni = {...existingGiorni, ...giorniDaInviare};
+  const mergedStrutture = {...existingStrutture, ...strutture};
+  const mergedTot = Object.values(mergedGiorni).reduce((s,o) => s+o, 0);
+
+  await db.collection('schedules').doc(schedId).set({
+    workerId, period, type: scheduleType,
+    giorni: mergedGiorni, totOre: mergedTot, strutture: mergedStrutture,
+    inviatoDa: currentUser.uid,
+    inviatoAt: firebase.firestore.FieldValue.serverTimestamp()
+  });
+
+  const batch = db.batch();
+  for (const [day, ore] of Object.entries(giorniDaInviare)) {
+    const mese = day.substring(0,7);
+    const tsId = workerId+'_'+day;
+    batch.set(db.collection('timesheets').doc(tsId), {
+      workerId, data: day, mese,
+      settimana: getWeekStrFromDate(new Date(day+'T12:00:00')),
+      oreRichieste: ore,
+      strutturaRichiesta: strutture['struttura_'+day] || null,
+      giornoLibero: ore === 0,
+      confermato: ore === 0,
+      giustificativo: ore === 0 ? {tipo:'giorno_libero', note:'Nessuna ora assegnata'} : null,
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    }, {merge:true});
+  }
+  await batch.commit();
+  return Object.keys(giorniDaInviare).length;
+}
+
+async function inviaSingolo(workerId) {
+  const period = document.getElementById('schedule-period').value;
+  if (!period) { showToast('Seleziona prima un periodo', 'error'); return; }
+
+  const w = allWorkers.find(x => x.id === workerId);
+  if (!w) { showToast('Collaboratore non trovato', 'error'); return; }
+
+  const days = scheduleType === 'month' ? getDaysOfMonth(period) : getDaysOfWeek(period);
+  const {giorni, strutture} = raccogliOreWorker(workerId, days);
+
+  if (!Object.keys(giorni).length) {
+    showToast('Inserisci almeno un ora per ' + w.nome, 'error');
+    return;
+  }
+
+  const btn = document.querySelector(`button[onclick="inviaSingolo('${workerId}')"]`);
+  if (btn) { btn.disabled = true; btn.textContent = '⏳'; }
+
+  try {
+    const inviati = await inviaOreWorker(workerId, period, giorni, strutture);
+    if (inviati === 0) {
+      showToast(w.nome + ' ' + w.cognome + ' — tutte le giornate sono gia confermate ✓', 'success');
+    } else {
+      showToast('✅ Orari inviati a ' + w.nome + ' ' + w.cognome + '! (' + inviati + ' giorni)', 'success');
+    }
+    loadDashboard();
+    renderScheduleGrid();
+  } catch(e) {
+    console.error(e);
+    showToast('Errore: ' + e.message, 'error');
+    if (btn) { btn.disabled = false; btn.textContent = '📤'; }
+  }
+}
+
 async function inviaATutti() {
   const period = document.getElementById('schedule-period').value;
   if (!period) { showToast('Seleziona un periodo', 'error'); return; }
