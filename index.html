@@ -767,8 +767,10 @@ function initApp() {
     });
   } else {
     document.getElementById('sidebar-worker').style.display = '';
-    showPage('worker-home');
-    loadWorkerHome();
+    loadStruttureWorker().then(() => {
+      showPage('worker-home');
+      loadWorkerHome();
+    });
   }
 }
 
@@ -936,10 +938,19 @@ function renderStrutture() {
 }
 
 function updateStruttureSelects() {
-  // Aggiorna tutti i select strutture nell'app
-  const opts = '<option value="">— Nessuna —</option>' + allStrutture.map(s => `<option value="${s.nome}">${s.nome}</option>`).join('');
   const confSel = document.getElementById('conf-struttura-effettiva');
-  if (confSel) confSel.innerHTML = '<option value="">— Seleziona struttura —</option>' + allStrutture.map(s => `<option value="${s.nome}">${s.nome}</option>`).join('');
+  if (confSel) {
+    confSel.innerHTML = '<option value="">— Seleziona struttura —</option>' + 
+      allStrutture.map(s => `<option value="${s.nome}">${s.nome}</option>`).join('');
+  }
+}
+
+async function loadStruttureWorker() {
+  // Per i worker: carica strutture dal proprio adminId
+  if (!currentUserData?.adminId) return;
+  const snap = await db.collection('strutture').where('adminId','==',currentUserData.adminId).get();
+  allStrutture = snap.docs.map(d => ({id:d.id,...d.data()})).sort((a,b)=>a.nome.localeCompare(b.nome));
+  updateStruttureSelects();
 }
 
 async function addStruttura() {
@@ -1567,7 +1578,16 @@ function checkVariazione() {
 }
 
 function checkMalattia() {
-  document.getElementById('giust-protocollo-box').style.display = document.getElementById('giust-tipo').value === 'malattia' ? 'block' : 'none';
+  const isMalattia = document.getElementById('giust-tipo').value === 'malattia';
+  document.getElementById('giust-protocollo-box').style.display = isMalattia ? 'block' : 'none';
+  if (isMalattia) {
+    // Forza 0 ore effettive per malattia
+    document.getElementById('conf-ore-effettive').value = 0;
+    document.getElementById('conf-ore-effettive').disabled = true;
+    document.getElementById('giust-box').classList.add('open');
+  } else {
+    document.getElementById('conf-ore-effettive').disabled = false;
+  }
 }
 
 function openConferma(dayKey, oreRichieste, strutturaRichiesta) {
@@ -1583,10 +1603,13 @@ function openConferma(dayKey, oreRichieste, strutturaRichiesta) {
   document.getElementById('giust-note').value = '';
   document.getElementById('giust-protocollo-box').style.display = 'none';
   document.getElementById('giust-box').classList.remove('open');
-  // Preseleziona struttura prevista nel select
-  const strSel = document.getElementById('conf-struttura-effettiva');
+  // Popola e preseleziona struttura
   updateStruttureSelects();
-  if (strutturaRichiesta) strSel.value = strutturaRichiesta;
+  const strSel = document.getElementById('conf-struttura-effettiva');
+  if (strutturaRichiesta && strSel) {
+    // Aspetta che le opzioni siano presenti
+    setTimeout(() => { strSel.value = strutturaRichiesta; }, 50);
+  }
   // Imposta data minima/massima per malattia
   const today = new Date().toISOString().split('T')[0];
   document.getElementById('giust-malattia-dal').value = dayKey;
