@@ -1195,7 +1195,7 @@ async function inviaATutti() {
   if (!period) { showToast('Seleziona un periodo', 'error'); return; }
 
   const workers = allWorkers.filter(w => !w.preRegistrato);
-  if (!workers.length) { showToast('Nessun collaboratore', 'error'); return; }
+  if (!workers.length) { showToast("Nessun collaboratore", "error"); return; }
 
   const btn = document.querySelector('#invia-tutti-bar .btn-accent');
   btn.disabled = true;
@@ -1263,7 +1263,7 @@ async function inviaATutti() {
     loadDashboard();
   } catch(e) {
     console.error(e);
-    showToast('Errore durante l'invio: '+e.message, 'error');
+    showToast("Errore durante l'invio: "+e.message, "error");
   } finally {
     btn.disabled = false;
     btn.textContent = '📤 Invia a tutti i collaboratori';
